@@ -54,8 +54,10 @@ module protocol_core (
                     ? {OK, 8'd6, 8'd1, flags, 6'b0, fault_code, 1'b0, pc, 16'b0}
                     : {status, 56'b0};
     wire accept = request && status == OK;
+    // Reset clears loading and word_count, which reject WRITE_WORD requests.
+    // Memory contents are retained until overwritten by a new complete load.
     always @(posedge clk)
-        if (rst_n && accept && command == WRITE_WORD)
+        if (accept && command == WRITE_WORD)
             memory[write_index[5:0]] <= payload;
 
     wire [23:0] word = memory[pc[5:0]];
