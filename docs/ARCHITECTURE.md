@@ -193,6 +193,23 @@ the actual board and bus loading; these are external hardware requirements.
 
 ## Implementation order and acceptance gates
 
+### Executable software baseline
+
+The assembler and cycle-level model now implement this ISA. Use
+`python scripts/workflow.py test-model` and `python scripts/workflow.py demo`.
+Model host operations are atomic calls at the engine boundary, not SPI waveforms.
+Reset input is already conditioned; wrapper reset-release synchronization and
+physical metastability are outside this model. Protocol inputs do use two
+modeled synchronizer stages: a value first sampled on edge 1 is first available
+to instruction execution on edge 3. See model/README.md for exact API boundaries.
+
+Sequential fall-through past the final loaded word faults on the next fetch
+edge, without wrapping the PC. HALT/TRAP retain the current PC for diagnostics.
+CLEAR cancels an in-progress load (which BEGIN_LOAD has already made invalid)
+while preserving a previously committed program if no new load has begun.
+Program TRAP code zero is illegal. These details are now explicit model contracts
+for future RTL comparison. They are not evidence of working hardware.
+
 1. Preserve the original imported commit as a reference and obtain template
    simulation/GDS/precheck results before implementing the engine. The metadata
    change sets the intended 20 MHz constraint; no result is claimed here.

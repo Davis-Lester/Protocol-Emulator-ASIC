@@ -42,6 +42,22 @@ def doctor():
     print("Template:", "imported" if (ROOT / "config/template-lock.json").exists() else "NOT imported")
 
 
+def test_model():
+    """Software functional tests only; these do not simulate RTL."""
+    subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "verification",
+                    "-p", "test_*.py", "-v"], cwd=ROOT, check=True)
+
+
+def demo():
+    """Assemble and execute the timed-pulse example with CSV/VCD outputs."""
+    subprocess.run([sys.executable, "-m", "tools.assembler", "programs/pulse.asm",
+                    "-o", "runs/pulse.hex"], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, "-m", "model.engine", "runs/pulse.hex",
+                    "--trace", "runs/pulse.csv", "--vcd", "runs/pulse.vcd"],
+                   cwd=ROOT, check=True)
+    print("Software demo outputs: runs/pulse.hex, runs/pulse.csv, runs/pulse.vcd")
+
+
 def bootstrap():
     if (ROOT / "config/template-lock.json").exists():
         raise RuntimeError("Template already imported; review upstream updates manually")
@@ -84,10 +100,11 @@ def bootstrap():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["check", "doctor", "bootstrap-template"])
+    parser.add_argument("command", choices=["check", "doctor", "bootstrap-template", "test-model", "demo"])
     args = parser.parse_args()
     try:
-        {"check": check, "doctor": doctor, "bootstrap-template": bootstrap}[args.command]()
+        {"check": check, "doctor": doctor, "bootstrap-template": bootstrap,
+         "test-model": test_model, "demo": demo}[args.command]()
     except (RuntimeError, OSError, subprocess.CalledProcessError, KeyError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1

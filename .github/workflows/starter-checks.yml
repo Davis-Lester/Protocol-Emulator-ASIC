@@ -1,4 +1,4 @@
-name: Starter infrastructure checks
+name: Infrastructure and software checks
 on: [push, pull_request, workflow_dispatch]
 jobs:
   check:
@@ -9,3 +9,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: python scripts/workflow.py check
+      - name: Test assembler and Python reference model (not RTL)
+        run: python scripts/workflow.py test-model
+      - name: Run timed-pulse software demo
+        run: python scripts/workflow.py demo
