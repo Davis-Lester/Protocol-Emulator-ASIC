@@ -6,6 +6,7 @@ reg capture = 0;
 reg was_running = 0;
 integer trace_file, trace_cycle;
 reg [23:0] program_words [0:6];
+reg [23:0] uart_words [0:12];
 always #25 clk = ~clk;
 
 // Row zero is the edge that accepted START. First instruction retires on row 1.
@@ -191,6 +192,21 @@ initial begin
     command(3,3,24'h20ffff,0); command(4,0,0,0);
     command(6,0,0,0); status_check(2,2,64); // full image falls off end
     if ({uio_out,uio_oe} !== 0) fail("PC fault did not release pins");
+    reset_chip;
+    $readmemh("sim_build/uart_tx.hex", uart_words);
+    command(2,1,13,0);
+    for (i=0; i<13; i=i+1) command(3,3,uart_words[i],0);
+    command(4,0,0,0);
+    trace_cycle = 0;
+    trace_file = $fopen("sim_build/uart-rtl.csv", "w");
+    if (trace_file == 0) fail("cannot create UART trace");
+    $fdisplay(trace_file,"cycle,out,oe,running,fault");
+    capture = 1;
+    command(6,0,0,0);
+    repeat (2000) @(negedge clk);
+    capture = 0;
+    $fclose(trace_file);
+    status_check(0,0,12);
     $display("ENGINE PIN CHECKS PASSED");
     tests_done = 1;
 `ifdef QUESTA_STANDALONE

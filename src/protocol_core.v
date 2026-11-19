@@ -16,7 +16,8 @@ module protocol_core (
     reg valid, loading;
     // The extra bit represents the completed 64-word load or past-end fetch.
     reg [6:0] word_count, write_index, pc;
-    reg [1:0] fault_code;
+    reg [2:0] fault_code;
+    reg [7:0] tx_shift, loop_count;
     assign fault = |fault_code;
     reg [15:0] delay_left;
     reg [7:0] out_latch, oe_latch, od_mask;
@@ -51,7 +52,7 @@ module protocol_core (
     // STATUS snapshots state on the last request bit, before that edge executes.
     wire [7:0] flags = {6'b0, fault, running};
     assign response = (command == STATUS && status == OK)
-                    ? {OK, 8'd6, 8'd1, flags, 6'b0, fault_code, 1'b0, pc, 16'b0}
+                    ? {OK, 8'd6, 8'd1, flags, 5'b0, fault_code, 1'b0, pc, 16'b0}
                     : {status, 56'b0};
     wire accept = request && status == OK;
     // Reset clears loading and word_count, which reject WRITE_WORD requests.
@@ -64,15 +65,36 @@ module protocol_core (
     wire [3:0] opcode = word[23:20];
     wire [7:0] mask = word[15:8];
     wire [7:0] value = word[7:0];
-    wire illegal = (word[19:16] != 0) || (opcode > 3) ||
-                   (opcode == 0 && word[15:0] != 0) ||
-                   (opcode == 3 && word[15:0] == 0);
-    wire past_end = pc >= word_count;
+    reg illegal;
+    always @* begin
+        case (opcode)
+            0: illegal = |word[19:0];
+            1, 2: illegal = |word[19:16];
+            3: illegal = (|word[19:16]) || word[15:0] == 0;
+            6: illegal = (|word[19:8]) || value == 0;
+            7: illegal = |word[19:6];
+            9: illegal = |word[19:4];
+            12: illegal = |word[19:8];
+            default: illegal = 1;
+        endcase
+    end
+
+    wire [6:0] target = {1'b0, word[5:0]};
+    reg [2:0] exec_fault;
+    always @* begin
+        if (pc >= word_count) exec_fault = 2;                    // PC_RANGE
+        else if (illegal) exec_fault = 1;                        // ILLEGAL_INSTRUCTION
+        else if (opcode == 7 && loop_count == 0) exec_fault = 6; // LOOP_UNDERFLOW
+        else if (opcode == 7 && loop_count > 1 && target >= word_count) exec_fault = 2;
+        else exec_fault = 0;
+    end
     wire stopping = accept && command == STOP;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             running <= 0;
             fault_code <= 0;
+            loop_count <= 0;
+            tx_shift <= 0;
             loading <= 0;
             valid <= 0;
             pc <= 0;
@@ -82,13 +104,12 @@ module protocol_core (
             out_latch <= 0;
             oe_latch <= 0;
             od_mask <= 0;
-        end else if (stopping || (running && (past_end || illegal || opcode == 0))) begin
+        end else if (stopping || (running && (exec_fault != 0 || opcode == 0))) begin
             running <= 0;
             out_latch <= 0;
             oe_latch <= 0;
             delay_left <= 0;
-            if (!stopping && past_end) fault_code <= 2;       // PC_RANGE
-            else if (!stopping && illegal) fault_code <= 1;  // ILLEGAL_INSTRUCTION
+            if (!stopping) fault_code <= exec_fault;
         end else if (running) begin
             case (opcode)
                 1: begin
@@ -104,6 +125,23 @@ module protocol_core (
                     else delay_left <= delay_left - 1'b1;
                     if (delay_left == 1 || (delay_left == 0 && word[15:0] == 1))
                         pc <= pc + 1'b1;
+                end
+                6: begin // LOOP
+                    loop_count <= value;
+                    pc <= pc + 1'b1;
+                end
+                7: begin // DJNZ
+                    loop_count <= loop_count - 1'b1;
+                    pc <= loop_count == 1 ? pc + 1'b1 : target;
+                end
+                9: begin // TXBIT, direction in bit 3
+                    out_latch[word[2:0]] <= word[3] ? tx_shift[7] : tx_shift[0];
+                    tx_shift <= word[3] ? {tx_shift[6:0], 1'b0} : {1'b0, tx_shift[7:1]};
+                    pc <= pc + 1'b1;
+                end
+                12: begin // LOAD_TX
+                    tx_shift <= value;
+                    pc <= pc + 1'b1;
                 end
                 default: ;
             endcase
@@ -122,10 +160,14 @@ module protocol_core (
                 end
                 CONFIG_OD: od_mask <= payload[7:0];
                 START: begin
+                    loop_count <= 0;
+                    tx_shift <= 0;
                     pc <= 0;
                     running <= 1;
                 end
                 CLEAR: begin
+                    loop_count <= 0;
+                    tx_shift <= 0;
                     pc <= 0;
                     fault_code <= 0;
                     write_index <= 0;
