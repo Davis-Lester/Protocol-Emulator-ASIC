@@ -2,6 +2,47 @@
 
 Updated 2026-11-19.
 
+## Fanout repair on `local/fanout-repair`
+
+Local Codex owns this configuration change and baseline report review. Server
+Codex owns the physical rerun. The baseline is the official
+[run 44603796511](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44603796511)
+at `2503f7867acc23bd2d3b4dd65663ba0e3b42c86b`, after the reset edit.
+LibreLane 3.1.0.dev4 used ihp-sg13cmos5l at
+`89d42ee6d2fd9b50b86a1aada6fee6673c3e6008`. The archived final metrics
+show zero lint warnings, setup slack +28.208 ns and hold slack +0.108 ns.
+The archives preserve per-step commands. Top-level job exit codes were absent.
+
+All three post-route corners list the same 128 pins in
+`55-openroad-stapostpnr/<corner>/checks.rpt`. Each has a limit of eight.
+The root clock buffer drives 16 branches and 124 leaf clock buffers drive
+11 to 16 loads each. In the final netlist, `fanout498/X` drives eight logic
+loads and three antenna diodes. Both `fanout228/X` and `fanout248/X` drive
+eight logic loads and one antenna diode.
+
+The candidate configuration requests four sinks per CTS cluster and 80 um
+clock-buffer spacing to encourage intermediate branches. P&R uses a fanout
+target of five so repair can leave room for the three additional diode loads
+seen in the baseline. Both SDC files source the flow's base constraints.
+Sign-off uses the original fanout limits. The proposed settings require a
+new official run. Check the resolved configuration, actual CTS command, and
+final per-corner `checks.rpt` **and** fanout metric. Acceptance requires zero
+fanout violations in each corner, nonnegative setup and hold slack at 50 ns,
+and passing DRC, antenna, LVS, precheck and gate-level tests. The separate
+CDC/reset constraints review is outstanding.
+
+The repository's standalone pin bench passed on the exact baseline RTL using
+Verilator 5.026 and MSYS2 GCC 14.2.0 (behavioral simulation, no PDK).
+Questa and ModelSim both stopped at launch with Windows error 623.
+The local replay command was `python runs/fanout-rtl-check.py` in the parent
+checkout. `runs/verilator-engine-8s05nu2p/result.json` there records the commit,
+source hashes, tool versions, commands and exit codes. Elaboration, compilation
+and simulation returned zero. Elaboration reported three module timescale and
+three bench width warnings. Simulation printed `ENGINE PIN CHECKS PASSED`,
+and the model comparison matched all 29 rows. P0 rose on edge 3, fell on 23
+and was released on 28. All 42 software tests and the infrastructure check
+also passed. Physical closure of the candidate remains unverified.
+
 ## Status
 
 - Official template imported at 4b1204ab387b5ab94db1d57067051d8d89a2f83c.
@@ -105,10 +146,10 @@ report under `runs/template-baseline/`. The separate adder RTL job is unverified
 
 ## Next tasks
 
-1. Verify the reset lint fix with Questa and the official RTL/GDS/precheck/GL jobs.
-2. Investigate 136 reported maximum-fanout violations and complete physical
-   CDC/reset constraint review. The pin tests exercise digital timing with
-   oversampled SPI inputs.
+1. Run the official Tiny Tapeout flow on the fanout candidate and inspect the
+   per-corner reports against the acceptance criteria above.
+2. Complete the physical CDC/reset constraint review. The pin tests exercise
+   digital timing with oversampled SPI inputs.
 3. Local: extend RTL to the remaining instructions, then UART TX/RX, SPI and I2C
    programs with independent protocol checkers. No such examples are claimed yet.
 4. Server: synthesize the complete register-memory baseline early and report area
