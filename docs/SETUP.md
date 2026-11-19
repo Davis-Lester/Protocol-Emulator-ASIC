@@ -2,7 +2,7 @@
 
 ## Repository and remotes
 
-This checkout is independent of Omni. No GitHub repository has been created and no code has been pushed. Once an empty GitHub repository exists:
+This checkout is independent of Omni. An origin remote is now configured for Davis-Lester/Protocol-Emulator-ASIC. Check `git remote -v` and the remote's actual state before changing it; no push or Actions result is verified here. For a new checkout that has no remote, the commands are:
 
 ```sh
 git remote add origin <YOUR_REPOSITORY_URL>

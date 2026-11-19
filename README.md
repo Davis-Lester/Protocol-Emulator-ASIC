@@ -1,6 +1,6 @@
 # Programmable protocol emulator ASIC
 
-Starter workspace for the Jane Street protocol-emulator competition: programmable pin timing, with UART, SPI and I2C implemented as programs. Target: Tiny Tapeout IHP CMOS5L, 8x4 tiles. Architecture is not frozen and no functional RTL or tapeout result is claimed.
+Workspace for the Jane Street protocol-emulator competition: programmable pin timing, with UART, SPI and I2C implemented as programs. Target: Tiny Tapeout IHP CMOS5L, 8x4 tiles. The initial architecture is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); current RTL is still the imported template adder. No functional protocol RTL or tapeout result is claimed.
 
 ## Start here
 

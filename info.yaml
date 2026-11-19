@@ -1,17 +1,17 @@
 # Tiny Tapeout project information
 project:
-  title:        ""      # Project title
-  author:       ""      # Your name
+  title:        "Programmable Protocol Emulator"
+  author:       "Davis Lester"
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  ""      # One line description of what your project does
+  description:  "Reloadable pin engine for UART, SPI and I2C (planned; template RTL)."
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
-  clock_hz:     0       # Clock frequency in Hz (or 0 if not applicable)
+  clock_hz:     20000000 # Initial design target; timing closure is not yet verified
 
   # How many tiles your design occupies? A single tile is about 202x155 uM.
   tiles: "8x4"
 
   # Your top module name must start with "tt_um_". Make it unique by including your github username:
-  top_module:  "tt_um_example"
+  top_module:  "tt_um_example" # Retained until engine RTL and testbench replace the example
 
   # List your project's source files here.
   # Source files must be in ./src and you must list each source file separately, one per line.
@@ -21,11 +21,13 @@ project:
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
+# Planned engine pinout, NOT the behavior of the current template adder.
+# See docs/ARCHITECTURE.md and docs/info.md before connecting hardware.
 pinout:
   # Inputs
-  ui[0]: ""
-  ui[1]: ""
-  ui[2]: ""
+  ui[0]: "HOST_SCK"
+  ui[1]: "HOST_MOSI"
+  ui[2]: "HOST_CS_N"
   ui[3]: ""
   ui[4]: ""
   ui[5]: ""
@@ -33,24 +35,24 @@ pinout:
   ui[7]: ""
 
   # Outputs
-  uo[0]: ""
-  uo[1]: ""
-  uo[2]: ""
-  uo[3]: ""
-  uo[4]: ""
+  uo[0]: "HOST_MISO"
+  uo[1]: "RUNNING"
+  uo[2]: "FAULT"
+  uo[3]: "RX_VALID"
+  uo[4]: "TX_READY"
   uo[5]: ""
   uo[6]: ""
   uo[7]: ""
 
   # Bidirectional pins
-  uio[0]: ""
-  uio[1]: ""
-  uio[2]: ""
-  uio[3]: ""
-  uio[4]: ""
-  uio[5]: ""
-  uio[6]: ""
-  uio[7]: ""
+  uio[0]: "P0 / SPI_CS_N"
+  uio[1]: "P1 / SPI_MOSI / UART_TX"
+  uio[2]: "P2 / SPI_MISO / UART_RX / I2C_SCL"
+  uio[3]: "P3 / SPI_SCK / I2C_SDA"
+  uio[4]: "P4 / GPIO"
+  uio[5]: "P5 / GPIO"
+  uio[6]: "P6 / GPIO"
+  uio[7]: "P7 / GPIO"
 
 # Do not change!
 yaml_version: 6
