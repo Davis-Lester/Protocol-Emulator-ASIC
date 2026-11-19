@@ -5,8 +5,8 @@ them through a mode-0 SPI target on ui[2:0] and reads responses on uo[0].
 OUT sets selected output values, OE sets the corresponding output enables,
 DELAY occupies a specified number of clock cycles, and HALT releases all eight
 bidirectional pins. STOP, reset and execution faults also release the pins.
-The initial system clock target is 20 MHz. FIFO and protocol programs are
-planned. See [the architecture](ARCHITECTURE.md) for command bytes and timing.
+The initial system clock target is 20 MHz. The UART TX example uses LOAD_TX, TXBIT, LOOP and DJNZ to send 0x96
+on P1 at nominal 115200 baud (8N1). FIFO support is planned. See [the architecture](ARCHITECTURE.md) for command bytes and timing.
 
 ## How to test
 

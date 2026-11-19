@@ -4,7 +4,10 @@ The RTL and gate-level jobs use cocotb to assemble the pulse program, start the
 pin driver in `engine_checks.vh` and compare its CSV trace with the Python model.
 The driver accesses the DUT through its Tiny Tapeout pins. It also exercises
 incomplete loads, unsupported commands, bad instructions, open drain, stopping,
-deselection and full-memory fall-through.
+deselection and full-memory fall-through. It then loads the UART image over the
+same SPI pins. The independent UART check reads every output sample from
+`sim_build/uart-rtl.csv` and checks P1, output enable, RUNNING and FAULT through
+the 8N1 frame and HALT.
 
 ## Setting up
 

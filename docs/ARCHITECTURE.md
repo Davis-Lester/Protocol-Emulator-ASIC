@@ -1,8 +1,8 @@
 # Version-one architecture
 
 Decision date: 2026-11-19. This is the initial implementation contract, not a
-claim of working hardware. The first RTL milestone implements the four instructions
-and host subset described under Host loading and control.
+claim of working hardware. The UART TX milestone implements HALT, OUT, OE, DELAY, LOOP, DJNZ, TXBIT and
+LOAD_TX, plus the host subset described under Host loading and control.
 Memory size, clock frequency and protocol rates remain subject to synthesis,
 timing analysis and independent protocol tests. Change this document explicitly
 if those measurements require a different contract.
@@ -167,7 +167,8 @@ byte is 0 for accepted, 1 for unsupported command (including FIFO commands),
 2 for wrong payload length, 3 for invalid state and 4 for invalid word count.
 The next byte gives the response payload length. A successful STATUS returns six
 bytes: version (1), flags (bit 0 RUNNING, bit 1 FAULT, remaining bits zero),
-fault code (0 clear, 1 illegal or unimplemented instruction, 2 PC out of range),
+fault code (0 clear, 1 illegal or unimplemented instruction, 2 PC out of range,
+6 loop underflow),
 PC (including the diagnostic past-end value 64), TX count (0) and RX count (0).
 All other responses carry zero payload bytes. STATUS snapshots the state just
 before execution on the acceptance edge. START raises RUNNING on acceptance;

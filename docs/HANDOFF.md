@@ -2,7 +2,31 @@
 
 Updated 2026-11-19.
 
-## Status
+## UART TX milestone on `local/uart-tx`
+
+Base commit `2503f78`; tested RTL and bench commit `709eecf`. Local Codex
+integrated the existing 13-word UART example, implemented LOAD_TX, TXBIT,
+LOOP and DJNZ and verified pin behavior. Server retains physical-flow ownership.
+
+The host loaded the example over SPI. At 20 MHz the simulated TX pin P1 was
+enabled high on edge 2, fell for start on edge 176 and was released on edge
+1916 after one full stop bit. Sampling at the nominal 115200-baud centers
+decoded 0x96 LSB first. Every driven bit lasted 174 clocks (8.70 us).
+The shared checker validates every sample of driven idle, start, data and
+stop, plus output enables, RUNNING and FAULT. The pulse and host regression
+also passed with all 29 reference samples matching.
+
+Local command: `python runs/verify.py` in this checkout. Verilator 5.026,
+MSYS2 GCC 14.2.0, behavioral RTL, no PDK. Elaboration, compilation, linking
+and simulation returned zero. The bench printed ENGINE PIN CHECKS PASSED.
+Commands, exit codes, hashes, CSVs and transcripts are in the ignored
+`runs/verilator-engine-7ir2j2zu/`. Additional runs verified MSB-first shifting
+and confirmed detection of an incorrect byte and shortened data bits. All 42
+software tests passed. A separate RTL-only `--lint-only -Wall` run exited 1
+on the existing top-module filename warning (DECLFILENAME). See
+`runs/uart-rtl-lint/`. UART gate-level and physical results are pending.
+
+## Earlier minimal engine status
 
 - Official template imported at 4b1204ab387b5ab94db1d57067051d8d89a2f83c.
 - The official flow now targets tt_um_davis_lester_protocol_emulator. The

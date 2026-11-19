@@ -1,11 +1,11 @@
 # Programmable protocol emulator ASIC
 
 This Tiny Tapeout project targets IHP CMOS5L and 8x4 tiles. The Python assembler
-and cycle model support all 16 instructions. The first RTL engine loads 64 x 24-bit
-program memory over SPI and implements OUT, OE, DELAY and HALT. UART, SPI-controller
-and I2C programs are future milestones. See [the architecture](docs/ARCHITECTURE.md).
+and cycle model support all 16 instructions. The RTL loads 64 x 24-bit program
+memory over SPI. Its eight instructions support timed pin output and a fixed-byte
+UART transmitter. See [the architecture](docs/ARCHITECTURE.md).
 
-## Run the RTL pulse test
+## Run the pulse and UART TX pin tests
 
 From the repository root on Windows:
 
@@ -15,7 +15,11 @@ python scripts/questa_engine.py --bin "C:\intelFPGA\23.1std\questa_fse\win64"
 
 The runner assembles `programs/pulse.asm`, drives the physical SPI loading pins
 in simulation and compares the sampled outputs and enables against the model at
-every execution edge. Each run saves its commands, tool versions, input hashes,
+every execution edge. It then loads [the UART program](programs/uart_tx.asm) over
+SPI. The pin checker verifies a driven idle bit, start bit, eight data bits of
+0x96 LSB first, one stop bit and release of P1. At 20 MHz each bit spans 174
+clocks (8.70 us), giving 114943 baud, 0.22% below 115200. Use an external
+pull-up to hold TX idle high once HALT releases P1. Each run saves its commands, tool versions, input hashes,
 transcripts, CSV and result (as available) under `runs/questa-engine-*/`.
 The official RTL and gate-level jobs use the same pin driver and comparison.
 
@@ -64,7 +68,7 @@ python scripts/workflow.py demo
 | src/, test/, info.yaml | Engine RTL, pin-level simulation and Tiny Tapeout configuration |
 | model/ | Cycle-level Python ISA model; host SPI wire timing is not modeled |
 | tools/ | Assembler for the SPI-loadable instruction images |
-| programs/ | Runnable timed-pulse example; UART/SPI/I2C programs remain future work |
+| programs/ | Timed-pulse and fixed-byte UART TX programs |
 | verification/ | Assembler and cycle-model tests |
 | macros/ | Portable custom-macro deliverables and interface contracts |
 | scripts/ | Reproducible setup and checks |

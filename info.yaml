@@ -3,7 +3,7 @@ project:
   title:        "Programmable Protocol Emulator"
   author:       "Davis Lester"
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "SPI-loaded pin engine for timed output pulses."
+  description:  "SPI-loaded pin engine for timed pulses and UART transmission."
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     20000000 # Initial design target; timing closure is not yet verified
 
@@ -23,7 +23,7 @@ project:
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
-# Protocol roles are reserved for future programs. P0-P7 currently support OUT/OE.
+# The UART example drives TX on P1. Other protocol assignments are planned.
 # See docs/ARCHITECTURE.md and docs/info.md before connecting hardware.
 pinout:
   # Inputs

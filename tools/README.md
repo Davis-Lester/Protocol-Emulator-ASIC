@@ -37,4 +37,5 @@ request frames. The model CLI reads hex, not binary images.
 
 Assembler and model tests run via `python scripts/workflow.py test-model`.
 The SPI pin driver in `test/engine_checks.vh` sends assembled words to the RTL.
-Board-side host software and the UART/SPI/I2C protocol programs remain future work.
+The UART TX example is in `programs/uart_tx.asm`. Board-side host software, UART RX,
+SPI-controller and I2C programs remain future work.
