@@ -1,0 +1,32 @@
+# Local and licensed configuration
+.env
+.env.*
+!.env.example
+config/*.local.*
+*.key
+*.pem
+# Generated execution output and environments
+runs/
+build/
+dist/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+sim_build/
+results.xml
+*.vcd
+*.fst
+*.wlf
+work/
+transcript
+vsim.wlf
+# Live Cadence data and PDKs
+cadence-work/
+pdk/
+pdks/
+models/downloaded/
+*.cdslck
+*.log
+*.jou
+.Xil/
