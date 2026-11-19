@@ -5,38 +5,62 @@ Updated 2026-11-19.
 ## Status
 
 - Official template imported at 4b1204ab387b5ab94db1d57067051d8d89a2f83c.
-- Origin is configured for Davis-Lester/Protocol-Emulator-ASIC. No remote state,
-  push or Actions result was verified in this task.
-- Initial architecture selected in docs/ARCHITECTURE.md. Metadata/pin names describe
-  the planned engine; RTL and testbench still implement the template adder.
+- The official flow now targets tt_um_davis_lester_protocol_emulator. The
+  original adder is preserved in src/project.v and in the c9e002c baseline.
 - info.yaml targets 20 MHz; src/config.json uses a matching 50 ns period.
 - Assembler and Python cycle-level model implement all 16 ISA instructions, with
   atomic loading/control, four-byte FIFOs, synchronized protocol inputs and pin safety.
 - Timed-pulse example runs in the model: P0 high at edge 3, low at 23, released
   at 28; 20 cycles high = 1 us at an assumed 20 MHz. No actual clock is measured.
-- No engine RTL, RTL simulation pass, area result, timing closure or EDA result claimed.
+- Minimal engine RTL passed its SPI/pulse simulation in Questa. Physical area
+  and timing for the engine await the official Tiny Tapeout flow.
 - Software-task source commit: c9e002ce6db3d3e4f6e151e9f619cdad7af516ba.
 
 ## Ownership
 
 - Local: specification, cycle model, assembler/host tooling, documentation and review.
-- Server: EDA inventory, simulations, Cadence/custom macro execution.
-- Software task: local/assembler-model in an isolated checkout. The original
-  School checkout remains outside this chat's writable roots; deliver as a patch.
-  The owner previously chose to integrate completed changes into main. No original
-  checkout edits, commits or pushes are performed by this task.
+- Local/minimal-engine: RTL, host parser, pin verification and local Questa
+  execution. The owner ran Questa from PowerShell and Codex reviewed the logs.
+- Server: EDA inventory, synthesis and Cadence/custom macro execution.
+
+## Engine simulation, 2026-11-19
+
+- Base commit fa9859ffc9d537af55e3f009a3585added1f1d59 plus working-tree RTL
+  on local/minimal-engine. Run manifest records SHA-256 for each source, bench,
+  program, assembler, model and runner. Hashes matched the reviewed checkout.
+- Command: `python scripts/questa_engine.py --bin "C:\intelFPGA\23.1std\questa_fse\win64"`.
+  Questa Intel Starter FPGA Edition 2023.3, behavioral RTL, no PDK used.
+  Version queries, vlib, vlog and vsim each returned 0. Compilation reported
+  zero errors and warnings. Simulation printed ENGINE PIN CHECKS PASSED at 7532 us.
+- The host loaded the assembled seven-word image over mode-0 SPI. At acceptance
+  RUNNING went high. All 29 samples (acceptance through HALT) matched the Python
+  model for OUT, OE, RUNNING and FAULT. P0 was enabled low on edge 2, high on
+  edge 3, low on edge 23, then released with RUNNING low on edge 28.
+- Assertions covered malformed and aborted requests, short and excess loads,
+  protected writes while running, STOP, sticky faults, CLEAR, deselection,
+  open drain and past-end fetch at address 64. The remaining twelve opcodes
+  and the byte FIFOs are future work.
+- Full logs, per-command exit codes, manifest and observed CSV:
+  `runs/questa-engine-3bzq6mpy/` (ignored). The local Codex process launch
+  failed with Windows error 623 in a separate attempt.
+
+## Template reference
+
+The [reviewed Actions run](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44566481686)
+at c9e002ce6db3d3e4f6e151e9f619cdad7af516ba contains the original adder RTL
+with the 50 ns constraint. GDS completed, Magic DRC had zero errors, Netgen
+matched uniquely, all ten prechecks passed, and the supplied gate-level test
+passed. The 8x4 LEF is 1724.16 x 710.64 um. The adder used 821.923 um^2 of
+placed standard cells. LibreLane 3.1.0.dev4 used ihp-sg13cmos5l at
+89d42ee6d2fd9b50b86a1aada6fee6673c3e6008. See the reviewed archives and
+report under `runs/template-baseline/`. The separate adder RTL job is unverified.
 
 ## Next tasks
 
-1. Obtain original template simulation and official GDS/precheck results at the
-   original imported source commit 6d3c82c847ec117bc3dd2606402a6d0c22c5de6e;
-   record commands, versions, logs and pass/fail evidence.
-   Compare the 20 MHz constraint update separately. Keep a clean template
-   reference before replacing RTL.
-2. Local: use the implemented assembler/model as the software baseline. Add RTL
-   loading, OUT/OE/DELAY/HALT and compare its trace against the pulse model;
-   software tests alone do not verify RTL. Numeric SPI host response layout and
-   wire-level parser/reset/CDC tests are still required.
+1. Run the official RTL, GDS, precheck and gate-level jobs on the engine commit.
+   Record utilization, setup/hold slack, DRC, LVS and test assertions.
+2. Complete physical CDC/reset constraint review. The current pin-level tests
+   exercise digital timing with oversampled SPI inputs.
 3. Local: extend RTL to the remaining instructions, then UART TX/RX, SPI and I2C
    programs with independent protocol checkers. No such examples are claimed yet.
 4. Server: synthesize the complete register-memory baseline early and report area
@@ -44,9 +68,9 @@ Updated 2026-11-19.
 
 ## Environment evidence
 
-Previously observed: Python 3.12.7 and Git available; make and iverilog absent
-from PATH. Intel FPGA ModelSim executables were discoverable, which is not a
-license/compatibility test. No local EDA execution or server inventory is claimed.
+Python 3.12.7 and Git are available. The local Questa run above exercised its
+compiler, simulator and license. Make and Icarus were absent from the local
+PATH during review. ECE server inventory is pending.
 Record host/compute policy, tool versions, license checks, exact CMOS5L setup,
 flow dependencies and backup location after discovery. Never paste credentials.
 
@@ -54,9 +78,10 @@ flow dependencies and backup location after discovery. Never paste credentials.
 
 At the owner's request, AI assistance drafted the initial architecture, project
 metadata/pinout and documentation, then implemented the Python assembler/model,
-pulse example and software functional tests. No verified hardware is claimed.
+pulse example and software functional tests. For the first RTL milestone Codex
+implemented the SPI loader, pulse engine, Questa runner and pin-level checks.
 
-## Validation of this change
+## Software baseline validation (before RTL)
 
 - `python scripts/workflow.py test-model`: 42 tests passed under Python 3.12.7.
 - `python scripts/workflow.py demo`: model halts at cycle 28, releases pins and

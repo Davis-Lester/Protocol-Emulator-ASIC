@@ -1,12 +1,17 @@
-# Sample testbench for a Tiny Tapeout project
+# Protocol engine simulation
 
-This is a sample testbench for a Tiny Tapeout project. It uses [cocotb](https://docs.cocotb.org/en/stable/) to drive the DUT and check the outputs.
-See below to get started or for more information, check the [website](https://tinytapeout.com/hdl/testing/).
+The RTL and gate-level jobs use cocotb to assemble the pulse program, start the
+pin driver in `engine_checks.vh` and compare its CSV trace with the Python model.
+The driver accesses the DUT through its Tiny Tapeout pins. It also exercises
+incomplete loads, unsupported commands, bad instructions, open drain, stopping,
+deselection and full-memory fall-through.
 
 ## Setting up
 
-1. Edit [Makefile](Makefile) and modify `PROJECT_SOURCES` to point to your Verilog files.
-2. Edit [tb.v](tb.v) and replace `tt_um_example` with your module name.
+The Linux workflow uses Icarus, make and `test/requirements.txt`.
+For standalone Questa, run `python scripts/questa_engine.py --bin <Questa-bin-directory>`
+from the repository root. It saves the pin checks and cycle comparison in a new
+run directory and exits nonzero if compilation, simulation or comparison fails.
 
 ## How to run
 

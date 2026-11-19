@@ -1,6 +1,23 @@
 # Programmable protocol emulator ASIC
 
-Workspace for the Jane Street protocol-emulator competition: programmable pin timing, with UART, SPI and I2C planned as programs. Target: Tiny Tapeout IHP CMOS5L, 8x4 tiles. The initial architecture is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). A Python assembler and cycle-level model now execute all 16 instructions, with a timed-pulse example and software tests. Current RTL is still the imported template adder; no functional protocol RTL or tapeout result is claimed.
+This Tiny Tapeout project targets IHP CMOS5L and 8x4 tiles. The Python assembler
+and cycle model support all 16 instructions. The first RTL engine loads 64 x 24-bit
+program memory over SPI and implements OUT, OE, DELAY and HALT. UART, SPI-controller
+and I2C programs are future milestones. See [the architecture](docs/ARCHITECTURE.md).
+
+## Run the RTL pulse test
+
+From the repository root on Windows:
+
+```powershell
+python scripts/questa_engine.py --bin "C:\intelFPGA\23.1std\questa_fse\win64"
+```
+
+The runner assembles `programs/pulse.asm`, drives the physical SPI loading pins
+in simulation and compares the sampled outputs and enables against the model at
+every execution edge. Each run saves its commands, tool versions, input hashes,
+transcripts, CSV and result (as available) under `runs/questa-engine-*/`.
+The official RTL and gate-level jobs use the same pin driver and comparison.
 
 ## Run the software baseline
 
@@ -16,14 +33,14 @@ model, and writes `runs/pulse.hex`, `runs/pulse.csv` and `runs/pulse.vcd`. P0 is
 high from cycle 3 to cycle 23: 20 cycles, or 1 us at the assumed 20 MHz clock.
 HALT releases it at cycle 28. See [model/README.md](model/README.md) for API/scope
 and [tools/README.md](tools/README.md) for assembly syntax and image formats.
-These are software results, not a simulation of the template RTL.
+These files describe the Python model.
 
 ## Start here
 
 1. Run `python scripts/workflow.py check` and `python scripts/workflow.py doctor`.
 2. The official Tiny Tapeout template is already imported; its exact commit is recorded in `config/template-lock.json`. Do not rerun the importer over existing files.
-3. Read `README.tinytapeout.md`, `test/README.md`, `info.yaml` and `.github/workflows/` before running the official flow. Metadata/pin names describe the planned engine; `tt_um_example` and its existing testbench still implement the adder. Rename module/testbench references together when implementing the engine.
-4. Save the template simulation and physical baseline results before replacing RTL or integrating custom macros. Python model tests do not satisfy that gate.
+3. Read `test/README.md` and `info.yaml` for RTL simulation and the engine source list.
+4. The template adder reference is at commit `c9e002c`. Its physical results and the outstanding separate RTL simulation record are listed in the handoff.
 5. Follow [the environment setup](docs/SETUP.md), [milestones](docs/PLAN.md), and [handoff](docs/HANDOFF.md).
 
 The official Tiny Tapeout flow is authoritative for submission. Cadence provides custom-block design and characterization; Questa provides additional verification; Vivado is optional FPGA validation. No Cadence-only tapeout flow is substituted for Tiny Tapeout.
@@ -44,11 +61,11 @@ python scripts/workflow.py demo
 
 | Path | Purpose |
 | --- | --- |
-| src/, test/, info.yaml | Added by official template import |
+| src/, test/, info.yaml | Engine RTL, pin-level simulation and Tiny Tapeout configuration |
 | model/ | Cycle-level Python ISA model; host SPI wire timing is not modeled |
-| tools/ | Working assembler; physical host loader remains future work |
+| tools/ | Assembler for the SPI-loadable instruction images |
 | programs/ | Runnable timed-pulse example; UART/SPI/I2C programs remain future work |
-| verification/ | Software functional tests; future RTL/protocol/Questa/formal harnesses |
+| verification/ | Assembler and cycle-model tests |
 | macros/ | Portable custom-macro deliverables and interface contracts |
 | scripts/ | Reproducible setup and checks |
 | config/ | Committed version references; local settings are ignored |
