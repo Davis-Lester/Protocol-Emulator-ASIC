@@ -61,6 +61,8 @@ module fifo_edges;
         tick; send(6,0,0,0); send(7,1,1,0); // Occupied FIFO admits push and pop.
         check_state(1,3,0); tick;
         if (pin_out !== 0) $fatal(1, "nonempty FIFO bypassed older byte");
+        tick; // Retire HALT before loading the RX arbitration program.
+
         // RXBIT samples a high P0, shifting 80, C0, E0, F0, F8 into the queue.
         send(9,0,0,0);
         send(2,1,3,0); send(3,3,24'ha00000,0); send(3,3,24'hb00001,0);
