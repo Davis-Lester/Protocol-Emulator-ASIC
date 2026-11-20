@@ -25,7 +25,7 @@ def main():
     rtl = [ROOT / "src" / name for name in ("protocol_emulator.v", "protocol_spi.v", "protocol_core.v")]
     inputs = rtl + [ROOT / name for name in ("test/tb.v", "test/engine_checks.vh",
                     "test/pulse_reference.py", "programs/pulse.asm", "programs/uart_tx.asm",
-                    "programs/uart_fifo_tx.asm", "model/engine.py",
+                    "programs/uart_fifo_tx.asm", "programs/uart_rx.asm", "model/engine.py",
                     "tools/assembler.py", "scripts/questa_engine.py")]
     record = {"commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "git_status": subprocess.check_output(["git", "status", "--short"], cwd=ROOT, text=True),

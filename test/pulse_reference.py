@@ -23,6 +23,10 @@ def prepare(directory):
     if len(fifo_program) != 13:
         raise ValueError("Update the FIFO UART loader for the new program length")
     (directory / "uart_fifo_tx.hex").write_text(hex_text(fifo_program))
+    rx = assemble((ROOT / "programs/uart_rx.asm").read_text())
+    if len(rx) != 13:
+        raise ValueError("Update the RX loader for the new program length")
+    (directory / "uart_rx.hex").write_text(hex_text(rx))
     model = Engine()
     model.load_program(words)
     model.start()

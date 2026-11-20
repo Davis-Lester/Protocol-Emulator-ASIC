@@ -96,13 +96,13 @@ task command;
 endtask
 
 task fifo_status;
-    input [7:0] flags, code, pc, tx_count;
+    input [7:0] flags, code, pc, tx_count, rx_count;
     begin
         select_host;
         exchange(0, 0); exchange(0, 0);  // STATUS, length zero
         exchange(0, 0); exchange(0, 6);  // acceptance, six response bytes
-        exchange(0, 1); exchange(0, flags | (tx_count < 4 ? 8'h08 : 0)); exchange(0, code);
-        exchange(0, pc); exchange(0, tx_count); exchange(0, 0);
+        exchange(0, 1); exchange(0, flags | (tx_count < 4 ? 8'h08 : 0) | (rx_count != 0 ? 8'h04 : 0)); exchange(0, code);
+        exchange(0, pc); exchange(0, tx_count); exchange(0, rx_count);
         exchange(0, 0);
         release_host;
     end
@@ -110,7 +110,7 @@ endtask
 
 task status_check;
     input [7:0] flags, code, pc;
-    begin fifo_status(flags,code,pc,0); end
+    begin fifo_status(flags,code,pc,0,0); end
 endtask
 
 task reset_chip;
@@ -134,6 +134,35 @@ task illegal_program;
         status_check(2,1,0);
         if ({uio_out,uio_oe} !== 0) fail("fault did not release pins");
         command(6,0,0,3); command(9,0,0,0);
+    end
+endtask
+
+// Drive the wire with a transmitter clock independent of the ASIC clock.
+task uart_frame;
+    input [7:0] data;
+    input stop_level;
+    input integer bit_ns;
+    integer b;
+    begin
+        uio_in[2] = 0;
+        #(bit_ns);
+        for (b=0; b<8; b=b+1) begin
+            uio_in[2] = data[b];
+            #(bit_ns);
+        end
+        uio_in[2] = stop_level;
+        #(bit_ns);
+        uio_in[2] = 1;
+    end
+endtask
+
+task read_rx;
+    input [7:0] expected;
+    begin
+        select_host;
+        exchange(8,0); exchange(0,0);
+        exchange(0,0); exchange(0,1); exchange(0,expected);
+        release_host;
     end
 endtask
 
@@ -170,7 +199,7 @@ initial begin
     status_check(0,0,0);
     command(6,0,0,3);          // START without image
     command(2,1,0,4); command(2,1,65,4);
-    command(2,2,7,2); command(8,0,0,1);
+    command(2,2,7,2); command(8,0,0,6);
     command(2,1,7,0);
     select_host;                // abort WRITE_WORD after 2 bytes + 3 bits
     exchange(3,0); exchange(3,0); exchange(8'hff,0); exchange(8'hff,0);
@@ -214,7 +243,7 @@ initial begin
 
     illegal_program(24'h300000);  // DELAY zero
     illegal_program(24'h110101);  // reserved OUT operand
-    illegal_program(24'h400000);  // outside milestone ISA
+    illegal_program(24'hf00000);  // TRAP zero
     command(2,1,64,0);
     for (i=0; i<63; i=i+1) command(3,3,24'h300001,0);
     command(3,3,24'h20ffff,0); command(4,0,0,0);
@@ -238,7 +267,7 @@ initial begin
 
     command(7,0,0,2);          // WRITE_TX requires one payload byte.
     command(7,1,24'hc0,0);
-    fifo_status(0,0,12,1);
+    fifo_status(0,0,12,1,0);
     command(9,0,0,0);         // CLEAR drops queued data.
     status_check(0,0,0);
     command(7,1,24'hc1,0);
@@ -253,7 +282,7 @@ initial begin
     command(7,1,24'hff,0); command(7,1,24'h53,0);
     if (uo_out[4] !== 0) fail("TX_READY asserted when full");
     command(7,1,24'hfe,5);    // Overflow preserves all four entries.
-    fifo_status(0,0,0,4);
+    fifo_status(0,0,0,4,0);
     trace_cycle = 0;
     trace_file = $fopen("sim_build/uart-fifo-rtl.csv", "w");
     if (trace_file == 0) fail("cannot create FIFO UART trace");
@@ -275,6 +304,35 @@ initial begin
     command(4,0,0,0); command(6,0,0,0);
     status_check(2,4,1);      // Bounded GET_TX expired, released active outputs.
     if ({uio_out,uio_oe} !== 0) fail("TX timeout did not release pins");
+    reset_chip;
+    uio_in[2] = 1;
+    $readmemh("sim_build/uart_rx.hex", uart_words);
+    command(2,1,13,0);
+    for (i=0; i<13; i=i+1) command(3,3,uart_words[i],0);
+    command(4,0,0,0); command(6,0,0,0);
+    #13 uio_in[2] = 0; #2000 uio_in[2] = 1; #90000;
+    fifo_status(1,0,1,0,0); // Short start pulse.
+    uart_frame(8'h96,1,8681);
+    uart_frame(8'h00,1,8571);
+    uart_frame(8'hff,1,8801);
+    uart_frame(8'h53,1,8681);
+    fifo_status(1,0,1,0,4);
+    if (uo_out[3] !== 1 || uio_oe !== 0) fail("RX status or pin direction");
+    uart_frame(8'ha5,1,8681); // Full FIFO faults at PUT_RX.
+    fifo_status(2,5,11,0,4);
+    command(8,1,0,2);
+    read_rx(8'h96); read_rx(8'h00); read_rx(8'hff); read_rx(8'h53);
+    if (uo_out[3] !== 0) fail("RX_VALID after draining");
+    command(8,0,0,6);
+    command(9,0,0,0); command(6,0,0,0);
+    uart_frame(8'h3c,1,8681);
+    uart_frame(8'h81,0,8681); // Bad stop is rejected, previous byte retained.
+    fifo_status(2,8'h80,10,0,1);
+    read_rx(8'h3c);
+    command(9,0,0,0); command(6,0,0,0);
+    uart_frame(8'ha9,1,8681);
+    read_rx(8'ha9);
+    $display("UART RX PIN CHECKS PASSED");
     $display("ENGINE PIN CHECKS PASSED");
     tests_done = 1;
 `ifdef QUESTA_STANDALONE

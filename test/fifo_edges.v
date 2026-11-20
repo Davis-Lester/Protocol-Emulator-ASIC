@@ -7,10 +7,10 @@ module fifo_edges;
     reg [7:0] command = 0, length = 0;
     reg [23:0] payload = 0;
     wire [63:0] response;
-    wire running, fault, tx_ready;
+    wire running, fault, tx_ready, rx_valid;
     wire [7:0] pin_out, pin_oe;
     protocol_core dut(.clk(clk), .rst_n(rst_n), .request(request),
-        .command(command), .length(length), .payload(payload), .response(response),
+        .pin_in(8'h01), .rx_valid(rx_valid), .command(command), .length(length), .payload(payload), .response(response),
         .running(running), .fault(fault), .tx_ready(tx_ready),
         .pin_out(pin_out), .pin_oe(pin_oe));
 
@@ -61,6 +61,24 @@ module fifo_edges;
         tick; send(6,0,0,0); send(7,1,1,0); // Occupied FIFO admits push and pop.
         check_state(1,3,0); tick;
         if (pin_out !== 0) $fatal(1, "nonempty FIFO bypassed older byte");
+        // RXBIT samples a high P0, shifting 80, C0, E0, F0, F8 into the queue.
+        send(9,0,0,0);
+        send(2,1,3,0); send(3,3,24'ha00000,0); send(3,3,24'hb00001,0);
+        send(3,3,24'h500000,0); send(4,0,0,0); send(6,0,0,0);
+        tick;
+        send(8,0,0,6); // Empty at start of first PUT_RX edge.
+        repeat (3) begin tick; tick; tick; end
+        tick; tick; // Fetch fifth PUT_RX with a full queue.
+        command = 8; length = 0; request = 1; #1;
+        if (response !== 64'h0001800000000000) $fatal(1, "lost oldest RX byte");
+        tick; request = 0;
+        send(1,0,0,0);
+        command = 0; #1;
+        if (response[7:0] !== 4 || !rx_valid || fault) $fatal(1, "RX FIFO collision");
+        repeat (3) send(8,0,0,0);
+        command = 8; #1;
+        if (response !== 64'h0001f80000000000) $fatal(1, "lost simultaneous RX push");
+        send(8,0,0,0); send(8,0,0,6);
         $display("FIFO EDGE CHECKS PASSED");
         $finish;
     end
