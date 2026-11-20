@@ -1,8 +1,9 @@
 // Shared pin-level driver for the official RTL/GL jobs and Questa.
-// Each SPI half-period is ten 50 ns system clocks (1 MHz SPI).
+// The reference traces use 1 MHz SPI. The asynchronous test uses 503 ns halves.
 reg start_tests = 0;
 reg tests_done = 0;
 reg capture = 0;
+reg async_host = 0;
 reg was_running = 0;
 integer trace_file, trace_cycle;
 reg [23:0] program_words [0:6];
@@ -28,7 +29,10 @@ task fail;
 endtask
 
 task wait_half;
-    begin repeat (10) @(negedge clk); end
+    begin
+        if (async_host) #503;
+        else repeat (10) @(negedge clk);
+    end
 endtask
 
 task select_host;
@@ -138,6 +142,23 @@ initial begin
 `ifndef QUESTA_STANDALONE
     wait (start_tests);
 `endif
+    // Release selected reset on either side of a rising edge. The independent
+    // 1006 ns SCK period walks the sampling phase through each STATUS frame.
+    async_host = 1;
+    for (i=0; i<2; i=i+1) begin
+        @(negedge clk);
+        #7 ena = 1;
+        rst_n = 0;
+        repeat (2) @(negedge clk);
+        if (i == 0) #24.5;
+        else #25.5;
+        rst_n = 1;
+        #400;
+        status_check(0,0,0);
+        ena = 0;
+        wait_half;
+    end
+    async_host = 0;
     reset_chip;
     status_check(0,0,0);
     command(6,0,0,3);          // START without image
@@ -177,7 +198,7 @@ initial begin
     if ({uo_out,uio_out,uio_oe} !== 0) fail("STOP did not release pins");
     command(9,0,0,0); command(6,0,0,0); // CLEAR preserves committed image/OD
     if ({uio_out,uio_oe} !== 16'hf3fb) fail("restart after CLEAR");
-    ena = 0; #2;
+    @(negedge clk); #7 ena = 0; #2;
     if ({uo_out,uio_out,uio_oe} !== 0) fail("deselect did not release pins");
     wait_half; ena = 1; wait_half;
     command(6,0,0,0); // disarmed interface remains silent
