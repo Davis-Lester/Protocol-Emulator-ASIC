@@ -14,11 +14,14 @@ Clock tree synthesis requests four sinks per cluster and 80 um buffer
 spacing. The implementation signal-fanout target is four, leaving room for
 up to four more loads against the observed eight-load limit. Sign-off uses
 the original flow constraints. New placement and routing can change the
-diode count. The combined design still needs an official GDS run.
+diode count.
 
-The GDS workflow checks the submission metrics at the fast, typical and
-slow corners. Acceptance also requires passing setup/hold at 50 ns, DRC,
-antenna, LVS, Tiny Tapeout precheck and the UART gate-level test.
+The [combined GDS run](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44681569474)
+at `6c0b456` reported zero fanout violations across the three corners,
+worst setup slack +27.515 ns and worst hold slack +0.106 ns at 20 MHz.
+DRC, antenna, LVS, Tiny Tapeout precheck and the UART gate-level test passed.
+Local Codex traced the routed SPI synchronizers, reset distribution and
+output masking in the [CDC and reset review](CDC_REVIEW.md).
 
 ## UART TX milestone on `local/uart-tx`
 
@@ -70,7 +73,7 @@ Sign-off uses the original fanout limits. The [minimal-engine rerun](https://git
 final per-corner `checks.rpt` **and** fanout metric. Acceptance requires zero
 fanout violations in each corner, nonnegative setup and hold slack at 50 ns,
 and passing DRC, antenna, LVS, precheck and gate-level tests. The separate
-CDC/reset constraints review is outstanding.
+CDC/reset constraints review is recorded above for the combined layout.
 
 The repository's standalone pin bench passed on the exact baseline RTL using
 Verilator 5.026 and MSYS2 GCC 14.2.0 (behavioral simulation, no PDK).
@@ -82,7 +85,7 @@ and simulation returned zero. Elaboration reported three module timescale and
 three bench width warnings. Simulation printed `ENGINE PIN CHECKS PASSED`,
 and the model comparison matched all 29 rows. P0 rose on edge 3, fell on 23
 and was released on 28. All 42 software tests and the infrastructure check
-also passed. The combined UART rerun is still pending.
+also passed.
 
 ## Earlier minimal engine status
 
@@ -187,13 +190,11 @@ report under `runs/template-baseline/`. The separate adder RTL job is unverified
 
 ## Next tasks
 
-1. Run the official Tiny Tapeout flow on the combined UART fanout candidate and inspect the
-   per-corner reports against the acceptance criteria above.
-2. Complete the physical CDC/reset constraint review. The pin tests exercise
-   digital timing with oversampled SPI inputs.
-3. Local: extend RTL to the remaining instructions, then UART TX/RX, SPI and I2C
-   programs with independent protocol checkers. No such examples are claimed yet.
-4. Server: synthesize the complete register-memory baseline early and report area
+1. Confirm host reset/select sequencing and the external MISO and pin-disable
+   timing budgets before changing the asynchronous interface constraints.
+2. Local: extend the fixed-byte UART program to FIFO-fed TX, then continue
+   with UART RX, SPI and I2C programs and independent protocol checkers.
+3. Server: synthesize the complete register-memory baseline early and report area
    and timing before increasing memory or adding a custom macro.
 
 ## Environment evidence
