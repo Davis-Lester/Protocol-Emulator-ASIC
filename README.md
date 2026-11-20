@@ -2,8 +2,8 @@
 
 This Tiny Tapeout project targets IHP CMOS5L and 8x4 tiles. The Python assembler
 and cycle model support all 16 instructions. The RTL loads 64 x 24-bit program
-memory over SPI. Its eight instructions support timed pin output and a fixed-byte
-UART transmitter. See [the architecture](docs/ARCHITECTURE.md).
+memory over SPI. Ten instructions support timed pin output and fixed-byte or
+FIFO-fed UART transmission. See [the architecture](docs/ARCHITECTURE.md).
 
 ## Run the pulse and UART TX pin tests
 
@@ -22,6 +22,16 @@ clocks (8.70 us), giving 114943 baud, 0.22% below 115200. Use an external
 pull-up to hold TX idle high once HALT releases P1. Each run saves its commands, tool versions, input hashes,
 transcripts, CSV and result (as available) under `runs/questa-engine-*/`.
 The official RTL and gate-level jobs use the same pin driver and comparison.
+
+To stream UART bytes, load the 13-word [FIFO UART program](programs/uart_fifo_tx.asm)
+and send START. While selected, `uo[4]` high means the four-byte TX FIFO has
+space. For example, hold host CS low and transfer `07 01 A5 00 00` over
+mode-0 SPI to enqueue 0xA5. The last two returned bytes are status and
+response length. `00 00` means accepted and `05 00` means full. Retry
+a full write once space is available. The program drives P1 high while
+waiting, sends each byte as 8N1 and loops until STOP. To finish the last
+frame, wait for its stop bit before sending STOP. The TX count covers
+queued bytes and excludes the byte already in the shifter.
 
 ## Run the software baseline
 

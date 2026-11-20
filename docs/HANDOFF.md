@@ -2,6 +2,36 @@
 
 Updated 2026-11-20.
 
+## FIFO-fed UART TX on `local/uart-fifo`
+
+Local Codex implemented a four-byte TX FIFO, WRITE_TX, GET_TX and JMP, plus
+the streaming program and pin tests at `dd5f49a`. The exact-edge arbitration
+test and its RTL CI step are at `93e2edb`. WRITE_TX accepts writes before
+START or during execution, and uo[4] advertises free space. A full write
+returns status 5. The pin bench loaded the 13-word program and decoded
+96, 00, FF, 53, A9 and 3C (hex) at nominal 115200 baud, 8N1. The first
+five frames began 1740 clocks apart. The sixth began after FIFO starvation
+and a live refill. All 15,561 samples matched the expected transmission,
+idle hold and pin release. The fixed-byte UART test and the 29-sample pulse
+comparison also passed.
+
+Local behavioral replays used Verilator 5.026, MSYS2 GCC 14.2.0 and no PDK.
+`python runs/verify.py` at `dd5f49a` and `python runs/verify_fifo_edges.py`
+at `93e2edb` both returned zero. All recorded command exit codes were zero,
+and each bench printed its pass marker. The edge test checks forwarding on
+the final GET_TX timeout edge, a write arriving one edge too late, and
+concurrent pushes and pops with a full or partially filled queue.
+Local command manifests, logs and traces are in the ignored directories
+`runs/verilator-engine-nk41t29h/` and `runs/verilator-fifo-edges-k_8zdlk7/`.
+The 42 software tests and infrastructure check passed. Standalone design
+lint reported zero warnings with `-Wall -Wno-DECLFILENAME`. The shared
+pin bench elaboration retained three timescale and three width warnings.
+
+The physical-flow owner should run the official Tiny Tapeout GDS, gate-level
+pin regression, precheck and per-corner fanout and timing checks on the FIFO
+branch. Routed results and extracted host timing numbers below describe the
+prior `6c0b456` layout. Repeat path extraction on the FIFO layout.
+
 ## UART fanout repair on `local/uart-fanout`
 
 The combined branch uses UART RTL from `525643a` and clock-tree settings
@@ -192,8 +222,8 @@ report under `runs/template-baseline/`. The separate adder RTL job is unverified
 
 1. Confirm host reset/select sequencing and the external MISO and pin-disable
    timing budgets before changing the asynchronous interface constraints.
-2. Local: extend the fixed-byte UART program to FIFO-fed TX, then continue
-   with UART RX, SPI and I2C programs and independent protocol checkers.
+2. Run the official GDS flow on the FIFO-fed UART branch. Continue with
+   UART RX, SPI and I2C programs and independent protocol checkers.
 3. Server: synthesize the complete register-memory baseline early and report area
    and timing before increasing memory or adding a custom macro.
 

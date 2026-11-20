@@ -9,6 +9,12 @@ same SPI pins. The independent UART check reads every output sample from
 `sim_build/uart-rtl.csv` and checks P1, output enable, RUNNING and FAULT through
 the 8N1 frame and HALT.
 
+The FIFO test fills all four TX slots, checks overflow rejection, refills
+while running, waits with the line idle, then supplies another byte and stops.
+The checker validates the six 8N1 frames cycle by cycle. The RTL CI job also
+runs `fifo_edges.v` to check writes on the final GET_TX timeout edge and
+simultaneous push/pop ordering with empty, occupied and full queues.
+
 ## Setting up
 
 The Linux workflow uses Icarus, make and `test/requirements.txt`.
