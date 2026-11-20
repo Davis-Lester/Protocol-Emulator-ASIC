@@ -18,6 +18,18 @@ jobs:
         with:
           pdk: ihp-sg13cmos5l # or ihp-sg13g2
 
+  fanout:
+    needs: gds
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: tt_submission
+          path: artifacts
+      - name: Check routed UART fanout at all three corners
+        run: python3 scripts/check_fanout.py artifacts/tt_submission/stats/metrics.csv
+
   precheck:
     needs: gds
     runs-on: ubuntu-24.04
