@@ -155,6 +155,7 @@ initial begin
         rst_n = 1;
         #400;
         status_check(0,0,0);
+        command(8'ha5,1,24'h000096,1); // mixed MOSI bits, unsupported opcode
         ena = 0;
         wait_half;
     end
