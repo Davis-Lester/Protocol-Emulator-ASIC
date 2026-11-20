@@ -30,6 +30,8 @@ jobs:
           make
           # make will return success even if the tests fail, so check results.xml for failed tests
           python -m cocotb_tools.check_results results.xml
+          iverilog -g2012 -s fifo_edges -o sim_build/fifo_edges ../src/protocol_core.v fifo_edges.v
+          vvp sim_build/fifo_edges
 
       - name: Test Summary
         uses: test-summary/action@v2.4
