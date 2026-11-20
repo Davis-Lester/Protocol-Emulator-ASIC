@@ -24,7 +24,8 @@ def main():
     print(f"Run directory: {directory}", flush=True)
     rtl = [ROOT / "src" / name for name in ("protocol_emulator.v", "protocol_spi.v", "protocol_core.v")]
     inputs = rtl + [ROOT / name for name in ("test/tb.v", "test/engine_checks.vh",
-                    "test/pulse_reference.py", "programs/pulse.asm", "programs/uart_tx.asm", "model/engine.py",
+                    "test/pulse_reference.py", "programs/pulse.asm", "programs/uart_tx.asm",
+                    "programs/uart_fifo_tx.asm", "model/engine.py",
                     "tools/assembler.py", "scripts/questa_engine.py")]
     record = {"commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "git_status": subprocess.check_output(["git", "status", "--short"], cwd=ROOT, text=True),
@@ -62,7 +63,7 @@ def main():
             raise RuntimeError(f"Pin checks did not pass. See {directory / 'simulate.log'}")
         compare(build, expected)
         record["result"] = "PASS"
-        print("PASS: SPI, load/control, fault and pin checks; pulse matches model on all 29 samples; UART 0x96 frame and timing passed")
+        print("PASS: SPI pin checks, 29 pulse samples, fixed-byte UART and six FIFO-fed UART frames")
     except (OSError, RuntimeError, ValueError, AssertionError) as exc:
         record["error"] = str(exc)
         print(f"FAIL: {exc}", file=sys.stderr)

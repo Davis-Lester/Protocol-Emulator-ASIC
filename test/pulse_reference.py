@@ -19,6 +19,10 @@ def prepare(directory):
     if len(uart) != 13:
         raise ValueError("Update the UART loader for the new program length")
     (directory / "uart_tx.hex").write_text(hex_text(uart))
+    fifo_program = assemble((ROOT / "programs/uart_fifo_tx.asm").read_text())
+    if len(fifo_program) != 13:
+        raise ValueError("Update the FIFO UART loader for the new program length")
+    (directory / "uart_fifo_tx.hex").write_text(hex_text(fifo_program))
     model = Engine()
     model.load_program(words)
     model.start()
@@ -39,6 +43,7 @@ def read_samples(path):
 
 def compare(directory, expected):
     check_uart(read_samples(directory / "uart-rtl.csv"))
+    check_fifo_uart(read_samples(directory / "uart-fifo-rtl.csv"))
     actual = read_samples(directory / "pulse-rtl.csv")
     if len(actual) != len(expected):
         raise AssertionError(f"Expected {len(expected)} samples, got {len(actual)}")
@@ -66,3 +71,31 @@ def check_uart(samples):
             slot = (i - enabled) // bit_clocks
             if out != levels[slot] << 1:
                 raise AssertionError(f"UART level mismatch in slot {slot} on edge {i}")
+
+
+def check_fifo_uart(samples):
+    bit_clocks = round(20_000_000 / 115_200)
+    idle = 2  # P1 driven high.
+    start_edges = []
+    edge = 2
+    expected_pin_state = [(0, 0), (idle, 0)]
+    for byte in (0x96, 0x00, 0xff, 0x53, 0xa9, 0x3c):
+        while edge < len(samples) and samples[edge][1] == idle:
+            expected_pin_state.append((idle, idle))
+            edge += 1
+        start_edges.append(edge)
+        for level in (0, *((byte >> i) & 1 for i in range(8)), 1):
+            expected_pin_state.extend([(level << 1, idle)] * bit_clocks)
+            edge += bit_clocks
+    if any(b - a != 10 * bit_clocks for a, b in zip(start_edges[:4], start_edges[1:5])):
+        raise AssertionError(f"Gap in queued UART burst: {start_edges}")
+    if start_edges[5] - start_edges[4] <= 10 * bit_clocks:
+        raise AssertionError("Missing UART idle interval during FIFO starvation")
+    expected_pin_state.extend([(idle, idle)] * (len(samples) - edge - 1))
+    expected_pin_state.append((0, 0))
+    if len(expected_pin_state) != len(samples):
+        raise AssertionError("FIFO UART stream ended before all frames completed")
+    for i, ((out, oe), observed) in enumerate(zip(expected_pin_state, samples)):
+        expected = (i, out, oe, int(i != len(samples) - 1), 0)
+        if observed != expected:
+            raise AssertionError(f"FIFO UART edge {i}: expected {expected}, got {observed}")

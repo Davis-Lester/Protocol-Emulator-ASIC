@@ -23,7 +23,7 @@ module tt_um_davis_lester_protocol_emulator (
     wire [7:0] command, length;
     wire [23:0] payload;
     wire [63:0] response;
-    wire miso, running, fault;
+    wire miso, running, fault, tx_ready;
     wire [7:0] pin_out, pin_oe;
 
     protocol_spi host (
@@ -34,12 +34,12 @@ module tt_um_davis_lester_protocol_emulator (
     protocol_core engine (
         .clk(clk), .rst_n(active), .request(request), .command(command),
         .length(length), .payload(payload), .response(response),
-        .running(running), .fault(fault), .pin_out(pin_out), .pin_oe(pin_oe)
+        .running(running), .fault(fault), .tx_ready(tx_ready), .pin_out(pin_out), .pin_oe(pin_oe)
     );
 
     wire enabled = active && reset_request_n;
     assign uio_out = enabled ? pin_out : 8'b0;
     assign uio_oe  = enabled ? pin_oe  : 8'b0;
-    assign uo_out  = enabled ? {5'b0, fault, running, miso} : 8'b0;
+    assign uo_out  = enabled ? {3'b0, tx_ready, 1'b0, fault, running, miso} : 8'b0;
     wire _unused = &{1'b0, uio_in, ui_in[7:3]};
 endmodule

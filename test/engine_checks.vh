@@ -95,17 +95,22 @@ task command;
     end
 endtask
 
-task status_check;
-    input [7:0] flags, code, pc;
+task fifo_status;
+    input [7:0] flags, code, pc, tx_count;
     begin
         select_host;
         exchange(0, 0); exchange(0, 0);  // STATUS, length zero
         exchange(0, 0); exchange(0, 6);  // acceptance, six response bytes
-        exchange(0, 1); exchange(0, flags); exchange(0, code);
-        exchange(0, pc); exchange(0, 0); exchange(0, 0);
+        exchange(0, 1); exchange(0, flags | (tx_count < 4 ? 8'h08 : 0)); exchange(0, code);
+        exchange(0, pc); exchange(0, tx_count); exchange(0, 0);
         exchange(0, 0);
         release_host;
     end
+endtask
+
+task status_check;
+    input [7:0] flags, code, pc;
+    begin fifo_status(flags,code,pc,0); end
 endtask
 
 task reset_chip;
@@ -114,9 +119,10 @@ task reset_chip;
         rst_n = 0;
         ui_in = 4;
         wait_half;
+        if ({uo_out,uio_oe,uio_out} !== 24'b0) fail("unsafe asserted reset");
         rst_n = 1;
         wait_half;
-        if ({uo_out,uio_oe,uio_out} !== 24'b0) fail("unsafe reset state");
+        if ({uo_out,uio_oe,uio_out} !== 24'h10_00_00) fail("unsafe reset state");
     end
 endtask
 
@@ -164,7 +170,7 @@ initial begin
     status_check(0,0,0);
     command(6,0,0,3);          // START without image
     command(2,1,0,4); command(2,1,65,4);
-    command(2,2,7,2); command(7,1,0,1);
+    command(2,2,7,2); command(8,0,0,1);
     command(2,1,7,0);
     select_host;                // abort WRITE_WORD after 2 bytes + 3 bits
     exchange(3,0); exchange(3,0); exchange(8'hff,0); exchange(8'hff,0);
@@ -196,7 +202,7 @@ initial begin
     command(2,1,1,3); command(5,1,0,3);
     if ({uio_out,uio_oe} !== 16'hf3fb) fail("mask/open-drain drive");
     command(1,0,0,0);
-    if ({uo_out,uio_out,uio_oe} !== 0) fail("STOP did not release pins");
+    if ({uo_out,uio_out,uio_oe} !== 24'h10_00_00) fail("STOP did not release pins");
     command(9,0,0,0); command(6,0,0,0); // CLEAR preserves committed image/OD
     if ({uio_out,uio_oe} !== 16'hf3fb) fail("restart after CLEAR");
     @(negedge clk); #7 ena = 0; #2;
@@ -229,6 +235,46 @@ initial begin
     capture = 0;
     $fclose(trace_file);
     status_check(0,0,12);
+
+    command(7,0,0,2);          // WRITE_TX requires one payload byte.
+    command(7,1,24'hc0,0);
+    fifo_status(0,0,12,1);
+    command(9,0,0,0);         // CLEAR drops queued data.
+    status_check(0,0,0);
+    command(7,1,24'hc1,0);
+    reset_chip;               // Reset drops queued data and invalidates the program.
+    status_check(0,0,0);
+
+    $readmemh("sim_build/uart_fifo_tx.hex", uart_words);
+    command(2,1,13,0);
+    for (i=0; i<13; i=i+1) command(3,3,uart_words[i],0);
+    command(4,0,0,0);
+    command(7,1,24'h96,0); command(7,1,0,0);
+    command(7,1,24'hff,0); command(7,1,24'h53,0);
+    if (uo_out[4] !== 0) fail("TX_READY asserted when full");
+    command(7,1,24'hfe,5);    // Overflow preserves all four entries.
+    fifo_status(0,0,0,4);
+    trace_cycle = 0;
+    trace_file = $fopen("sim_build/uart-fifo-rtl.csv", "w");
+    if (trace_file == 0) fail("cannot create FIFO UART trace");
+    $fdisplay(trace_file,"cycle,out,oe,running,fault");
+    capture = 1;
+    command(6,0,0,0);
+    if (uo_out[4] !== 1) fail("TX_READY stayed low after first pop");
+    command(7,1,24'ha9,0);    // Refill the wrapped slot while TX is running.
+    repeat (9000) @(negedge clk);
+    status_check(1,0,3);      // Waiting at GET_TX with idle high.
+    command(7,1,24'h3c,0);    // Simultaneous empty FIFO push and GET_TX.
+    repeat (2000) @(negedge clk);
+    command(1,0,0,0);
+    capture = 0;
+    $fclose(trace_file);
+    status_check(0,0,3);
+
+    command(2,1,2,0); command(3,3,24'h20ffff,0); command(3,3,24'h800002,0);
+    command(4,0,0,0); command(6,0,0,0);
+    status_check(2,4,1);      // Bounded GET_TX expired, released active outputs.
+    if ({uio_out,uio_oe} !== 0) fail("TX timeout did not release pins");
     $display("ENGINE PIN CHECKS PASSED");
     tests_done = 1;
 `ifdef QUESTA_STANDALONE
