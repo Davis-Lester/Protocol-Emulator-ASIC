@@ -2,6 +2,53 @@
 
 Updated 2026-11-20.
 
+## UART RX physical review
+
+The supplied archives identify commit `a22bd464b1f2313dff87b8657b47f85f64cbb999`
+and [Actions run 44849276133](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44849276133).
+Archived RTL and SDC files match that commit after newline normalization.
+LibreLane 3.1.0.dev4 used ihp-sg13cmos5l at
+`89d42ee6d2fd9b50b86a1aada6fee6673c3e6008`.
+
+| Corner | Setup slack | Hold slack | Fanout violations | Slew violations |
+| --- | ---: | ---: | ---: | ---: |
+| Fast | +29.003814 ns | +0.107079 ns | 0 | 0 |
+| Typical | +28.610882 ns | +0.283972 ns | 0 | 0 |
+| Slow | +27.945941 ns | +0.602444 ns | 0 | 2 |
+
+Timing uses the 50 ns target and original sign-off constraints. Total negative
+setup and hold slack is zero. Final routing and Magic DRC, antenna and LVS
+mismatch metrics are zero. All ten prechecks passed, with zero items in the
+three KLayout DRC reports. The gate-level XML records test_engine_pins passing
+after 14,564,350 ns, covering the shared RX/TX/pulse bench from this commit.
+The gate-level and precheck archives have no embedded commit ID. Their
+association with the GDS run follows the supplied artifact bundle.
+
+Physical closure remains open for the two slow-corner slew entries.
+`_07127_/Y` (sg13cmos5l_nor4_1) drives `_07128_/A`
+(sg13cmos5l_buf_4) on `_02409_`. Both share a 2.507400 ns limit.
+Reported slews are 3.382252 ns and 3.382752 ns respectively, with
+slacks -0.874852 ns and -0.875352 ns. The driver has one load and
+0.130758 pF reported capacitance. This path still meets setup timing.
+The flow log reports the offending corner and then prints
+"No max slew violations found". The final metrics and detailed checks agree
+on two violations. Repair this route or its driver and repeat the official
+flow with zero slew violations required across all corners.
+
+The routed netlist retains all eight protocol-input synchronizer pairs.
+Each first-stage Q reaches only its matching second-stage D, including any
+inserted buffers or hold-delay cells. The reset release stage has 252 reported
+downstream recovery and removal endpoints at every corner. Worst recovery
+slack is +45.684490 ns, worst removal slack +0.237778 ns.
+Maximum tabulated clock-to-MISO delay is 6.117070 ns. Maximum tabulated
+ena-to-OE-disable delay is 2.518820 ns. These are macro-boundary values over
+the generated load tables, excluding external pads, mux and board.
+
+Full artifacts, archive SHA-256 values and parsed results are in the outer
+checkout's ignored `runs/uart-rx-gds/` directory and
+`reviewed-results.json`. Local Codex reviewed these results and recorded
+the open slew repair. A new physical repair run remains pending.
+
 ## UART RX on `local/uart-rx`
 
 Local Codex added synchronized protocol inputs, the 13-word receive program
