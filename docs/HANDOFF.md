@@ -2,6 +2,30 @@
 
 Updated 2026-11-20.
 
+## UART RX slew repair on `local/uart-rx-slew`
+
+The final DEF from RX run 44849276133 shows 685.44 µm of metal between
+NOR4 output `_07127_/Y` and its single buffer load `_07128_/A`. The global
+route guide already shows the detour to the left edge. The placement repair
+loaded all three timing corners, but the flow skipped design repair after
+global routing. The slow-corner report shows 3.382752 ns at the buffer
+input against a 2.507400 ns limit.
+
+Local Codex enabled post-global-routing design repair, set its maximum wire
+length to 400 µm and its slew margin to 20%. A wire following the archived
+route exceeds that threshold and is eligible for buffering. The margin gives
+detailed routing and extraction headroom. The final slew checker now covers
+all corners. Its previous corner pattern matched none of the reported names.
+
+Local checks confirmed that all four settings exist in the archived LibreLane
+configuration and survive the merge with the generated project settings.
+All three RTL files and both SDCs match the archived RX submission.
+`python scripts/workflow.py check` passed. Physical validation requires
+the official GDS workflow. Check that `OpenROAD.RepairDesignPostGRT` ran,
+then require zero final slew and fanout violations at each corner, nonnegative
+setup and hold slack, and passing antenna, DRC, LVS, precheck and gate-level
+tests. Instance and net names may change in the reroute.
+
 ## UART RX physical review
 
 The supplied archives identify commit `a22bd464b1f2313dff87b8657b47f85f64cbb999`
