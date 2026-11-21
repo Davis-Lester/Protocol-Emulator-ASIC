@@ -63,7 +63,7 @@ def main():
             raise RuntimeError(f"Pin checks did not pass. See {directory / 'simulate.log'}")
         compare(build, expected)
         record["result"] = "PASS"
-        print("PASS: SPI pin checks, 29 pulse samples, fixed-byte UART and six FIFO-fed UART frames")
+        print("PASS: SPI pin checks, 29 pulse samples, fixed-byte UART and six FIFO-fed UART frames, UART RX pin and error checks")
     except (OSError, RuntimeError, ValueError, AssertionError) as exc:
         record["error"] = str(exc)
         print(f"FAIL: {exc}", file=sys.stderr)

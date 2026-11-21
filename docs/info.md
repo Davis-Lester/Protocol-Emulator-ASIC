@@ -7,7 +7,9 @@ DELAY occupies a specified number of clock cycles, and HALT releases all eight
 bidirectional pins. STOP, reset and execution faults also release the pins.
 The initial system clock target is 20 MHz. The UART TX example uses LOAD_TX, TXBIT, LOOP and DJNZ to send 0x96
 on P1 at nominal 115200 baud (8N1). A second UART program fetches SPI-loaded
-bytes from a four-byte TX FIFO and drives idle high between frames. See
+bytes from a four-byte TX FIFO and drives idle high between frames.
+The UART RX program receives 115200-baud 8N1 on P2. Read a byte with
+SPI command 0x08 when uo[3] is high. See
 [the architecture](ARCHITECTURE.md) for command bytes and timing.
 
 ## How to test

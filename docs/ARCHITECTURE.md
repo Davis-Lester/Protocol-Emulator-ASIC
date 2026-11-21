@@ -1,9 +1,8 @@
 # Version-one architecture
 
 Decision date: 2026-11-19. This is the initial implementation contract, not a
-claim of working hardware. The FIFO-fed UART TX milestone implements HALT,
-OUT, OE, DELAY, JMP, LOOP, DJNZ, GET_TX, TXBIT and LOAD_TX, plus the host
-subset described under Host loading and control.
+claim of working hardware. The UART RX milestone implements all 16 instructions
+and the host commands described under Host loading and control.
 Memory size, clock frequency and protocol rates remain subject to synthesis,
 timing analysis and independent protocol tests. Change this document explicitly
 if those measurements require a different contract.
@@ -64,7 +63,7 @@ these asynchronous inputs and synchronizers in the physical flow.
 
 The engine uses the host SPI and P0-P7 pin mapping below. TX_READY reports
 space in the four-byte TX FIFO while selected and out of reset. RX_VALID
-remains low until the RX FIFO is implemented.
+indicates at least one byte is available in the four-byte RX FIFO.
 
 | Tiny Tapeout pin | Engine meaning |
 | --- | --- |
@@ -164,17 +163,19 @@ and fault codes for the pulse engine are defined below.
 | 0x08 READ_RX | No payload; dequeue and return one byte if available | May run concurrently with engine |
 | 0x09 CLEAR | No payload; clear fault, shifters/counters, FIFO contents and output/OE latches | Stopped only; preserve committed program and OD mask |
 
-The FIFO-fed TX RTL supports commands 0x00 through 0x07 and 0x09. The first
-response byte is 0 for accepted, 1 for unsupported command (including READ_RX),
-2 for wrong payload length, 3 for invalid state, 4 for invalid word count and
-5 for a full TX FIFO. A full WRITE_TX is rejected even if GET_TX pops on that
+The RTL supports commands 0x00 through 0x09. The first response byte is 0
+for accepted, 1 for unsupported command, 2 for wrong payload length, 3 for
+invalid state, 4 for invalid word count, 5 for a full TX FIFO and 6 for an
+empty RX FIFO. A successful READ_RX returns one byte. An empty read returns
+status 6 even if PUT_RX enqueues on that edge. With a full FIFO, an accepted
+read returns the oldest byte and frees its slot for a simultaneous PUT_RX. A full WRITE_TX is rejected even if GET_TX pops on that
 edge. With an empty queue, GET_TX can consume a simultaneous WRITE_TX directly.
 The next byte gives the response payload length. A successful STATUS returns six
-bytes: version (1), flags (bit 0 RUNNING, bit 1 FAULT, bit 3 TX_READY, other bits zero),
+bytes: version (1), flags (bit 0 RUNNING, bit 1 FAULT, bit 2 RX_VALID, bit 3 TX_READY, other bits zero),
 fault code (0 clear, 1 illegal or unimplemented instruction, 2 PC out of range,
-4 TX timeout, 6 loop underflow),
-PC (including the diagnostic past-end value 64), TX count (0–4) and RX count (0).
-All other responses carry zero payload bytes. STATUS snapshots the state just
+3 WAIT timeout, 4 TX timeout, 5 RX timeout, 6 loop underflow, or the TRAP immediate),
+PC (including the diagnostic past-end value 64), TX count (0–4) and RX count (0-4).
+Commands other than STATUS and READ_RX return zero payload bytes. STATUS snapshots the state just
 before execution on the acceptance edge. START raises RUNNING on acceptance;
 instruction edge 1 is the next system clock edge. Hold reset low across at
 least one rising clock edge with ena high, then keep CS high for at least eight

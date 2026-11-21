@@ -2,6 +2,34 @@
 
 Updated 2026-11-20.
 
+## UART RX on `local/uart-rx`
+
+Local Codex added synchronized protocol inputs, the 13-word receive program
+and the four-byte RX FIFO on top of FIFO TX commit `04cfa13`. The pin bench
+loaded the program over SPI, drove P2 as an independent 8N1 transmitter,
+and read back consecutive bytes 96, 00, FF and 53 (hex). A fifth frame
+faulted and preserved those four bytes. A bad stop bit faulted while an
+earlier byte remained readable. After CLEAR and START, byte A9 was received.
+The test also rejected a 2 us start pulse. Bit intervals exercised were
+8571, 8681 and 8801 ns at the 20 MHz system clock.
+
+The behavioral RTL and pin bench are at `91c7194`. The direct FIFO bench
+at `ca3b848` passed with simultaneous reads and writes on empty and full
+queues. The first run of the extended direct bench issued CLEAR before the
+preceding TX test had halted. The corrected bench retires HALT first.
+The local replays used Verilator 5.026, GCC 14.2.0 and no PDK. The completed
+pin run resumed the interrupted compilation with `python runs/resume.py`.
+Its manifest and logs are under `runs/verilator-engine-ezq06z5p/`. The
+simulator printed UART RX PIN CHECKS PASSED and ENGINE PIN CHECKS PASSED.
+The UART TX scoreboards and 29-sample pulse comparison passed. The edge
+replay (`python runs/verify_fifo_edges.py`) printed FIFO EDGE CHECKS PASSED.
+Its manifest is under `runs/verilator-fifo-edges-ljh7thpc/`. Both runners
+returned zero. All 42 software tests, the infrastructure check and design
+lint with the existing filename warning suppressed passed.
+
+Next, run the official GDS and gate-level jobs on this branch. Recheck fanout,
+setup and hold across corners, including the new protocol input synchronizers.
+
 ## FIFO-fed UART TX on `local/uart-fifo`
 
 Local Codex implemented a four-byte TX FIFO, WRITE_TX, GET_TX and JMP, plus
@@ -222,8 +250,8 @@ report under `runs/template-baseline/`. The separate adder RTL job is unverified
 
 1. Confirm host reset/select sequencing and the external MISO and pin-disable
    timing budgets before changing the asynchronous interface constraints.
-2. Run the official GDS flow on the FIFO-fed UART branch. Continue with
-   UART RX, SPI and I2C programs and independent protocol checkers.
+2. Review the FIFO TX GDS results and run the UART RX physical checks above.
+   Continue with SPI and I2C programs and independent protocol checkers.
 3. Server: synthesize the complete register-memory baseline early and report area
    and timing before increasing memory or adding a custom macro.
 

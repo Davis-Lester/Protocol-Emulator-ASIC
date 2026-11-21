@@ -3,7 +3,7 @@ project:
   title:        "Programmable Protocol Emulator"
   author:       "Davis Lester"
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "SPI-loaded pin engine for timed pulses and UART transmission."
+  description:  "SPI-loaded pin engine for timed pulses and UART transmission or reception."
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     20000000 # Initial design target; timing closure is not yet verified
 

@@ -15,6 +15,12 @@ The checker validates the six 8N1 frames cycle by cycle. The RTL CI job also
 runs `fifo_edges.v` to check writes on the final GET_TX timeout edge and
 simultaneous push/pop ordering with empty, occupied and full queues.
 
+The RX test drives P2 with an independent serial clock, loads the receiver
+through SPI and checks READ_RX responses. It covers consecutive frames,
+a false start, framing and overrun faults, FIFO order and restart after CLEAR.
+The core bench also reads on the exact edge that PUT_RX writes to an empty
+or full queue.
+
 ## Setting up
 
 The Linux workflow uses Icarus, make and `test/requirements.txt`.

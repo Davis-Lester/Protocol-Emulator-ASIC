@@ -2,8 +2,8 @@
 
 This Tiny Tapeout project targets IHP CMOS5L and 8x4 tiles. The Python assembler
 and cycle model support all 16 instructions. The RTL loads 64 x 24-bit program
-memory over SPI. Ten instructions support timed pin output and fixed-byte or
-FIFO-fed UART transmission. See [the architecture](docs/ARCHITECTURE.md).
+memory over SPI. The 16 instructions support timed pin output and separate UART transmit
+and receive programs. See [the architecture](docs/ARCHITECTURE.md).
 
 ## Run the pulse and UART TX pin tests
 
@@ -32,6 +32,18 @@ a full write once space is available. The program drives P1 high while
 waiting, sends each byte as 8N1 and loops until STOP. To finish the last
 frame, wait for its stop bit before sending STOP. The TX count covers
 queued bytes and excludes the byte already in the shifter.
+
+## Receive UART bytes
+
+Load [uart_rx.asm](programs/uart_rx.asm), hold P2 high at idle, then issue START.
+Drive 115200-baud 8N1 into P2 with a 20 MHz project clock. When `uo[3]`
+(RX_VALID) rises, transfer `08 00 00 00 00` under one SPI CS assertion.
+The last three returned bytes are `00 01 xx`, where `xx` is the oldest
+received byte. A four-byte FIFO buffers arrivals while the host is busy.
+A short start pulse is ignored. A low stop bit faults with code `80` hex.
+A fifth byte received while the queue is full faults with code `05`.
+Earlier bytes remain readable after either fault. Drain them, issue CLEAR,
+return P2 to idle high and issue START to resume.
 
 ## Run the software baseline
 
