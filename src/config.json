@@ -19,6 +19,23 @@
   "//": "Initial engine target: 50 ns == 20 MHz; timing closure is unverified.",
   "CLOCK_PERIOD": 50,
 
+  "//": "The routed CMOS5L clock buffers have a fanout limit of eight.",
+  "//": "Use four-sink clusters to leave room for CTS balancing loads. Insert",
+  "//": "buffers along the H-tree before the root reaches sixteen branches.",
+  "CTS_SINK_CLUSTERING_SIZE": 4,
+  "CTS_DISTANCE_BETWEEN_BUFFERS": 80,
+
+  "//": "Leave signal-net fanout headroom for antenna diodes added during routing.",
+  "PNR_SDC_FILE": "dir::pnr.sdc",
+  "SIGNOFF_SDC_FILE": "dir::signoff.sdc",
+
+  "//": "The RX layout has a 685 um one-sink route with a slow-corner slew violation.",
+  "//": "Repair long wires with global-route parasitics before detailed routing.",
+  "RUN_POST_GRT_DESIGN_REPAIR": true,
+  "GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH": 400,
+  "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 20,
+  "MAX_SLEW_VIOLATION_CORNERS": ["*"],
+
   "//": "Hold slack margin - Increase them in case you are getting hold violations.",
   "PL_RESIZER_HOLD_SLACK_MARGIN": 0.1,
   "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.05,

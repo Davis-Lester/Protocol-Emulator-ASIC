@@ -1,52 +1,372 @@
 # Current handoff
 
-Updated 2026-11-19.
+Updated 2026-11-20.
 
-## Status
+## UART RX slew repair on `local/uart-rx-slew`
+
+The [repair run 44863037788](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44863037788)
+at `8cb7eb05cb305c48c688dcdc976a4ba89c104578` passes the reviewed UART RX
+physical acceptance checks. Archived RTL, configuration and SDC files match
+that commit after newline normalization. LibreLane 3.1.0.dev4 used
+ihp-sg13cmos5l revision `89d42ee6d2fd9b50b86a1aada6fee6673c3e6008`.
+
+| Corner | Setup slack | Hold slack | Slew / fanout / capacitance violations |
+| --- | ---: | ---: | --- |
+| Fast | +29.000325 ns | +0.107663 ns | 0 / 0 / 0 |
+| Typical | +28.605048 ns | +0.284878 ns | 0 / 0 / 0 |
+| Slow | +27.936758 ns | +0.603969 ns | 0 / 0 / 0 |
+
+The final detailed reports and submission metrics agree on all corner counts.
+Setup and hold total negative slack is zero at the 50 ns clock target.
+Routing and Magic DRC, antenna and LVS metrics are zero. All ten prechecks
+passed, with zero items in all three KLayout DRC XML files. The gate-level
+test_engine_pins passed after 14,564,350 ns, exercising the shared UART RX,
+UART TX and pulse tests. Precheck and gate-level XML have no embedded commit.
+Their association follows the supplied artifact bundle.
+
+Post-global-routing repair ran with the requested 400 µm wire length and
+20% slew margin. It inserted 175 buffers in 151 long nets. OpenROAD warned
+that the length limit was below its delay-optimal value of 4688 µm.
+The final setup and hold reports above account for the resulting routed design.
+Placed standard-cell area is 261800 µm² and utilization is 21.6691%.
+All eight protocol-input synchronizer pairs remain intact. The 252 reported
+downstream reset-release paths meet recovery and removal at every corner.
+Worst recovery slack is +45.871578 ns and removal slack is +0.250429 ns.
+Maximum tabulated macro clock-to-MISO delay is 5.821650 ns and
+ena-to-OE-disable delay is 2.520360 ns, excluding wrapper, pad and board delays.
+
+The outer checkout's ignored `runs/uart-rx-slew-gds/reviewed-results.json`
+records archive hashes, provenance, source comparisons and parsed results.
+The UART RX branch is ready for integration review.
+
+### Repair diagnosis
+
+The final DEF from RX run 44849276133 shows 685.44 µm of metal between
+NOR4 output `_07127_/Y` and its single buffer load `_07128_/A`. The global
+route guide already shows the detour to the left edge. The placement repair
+loaded all three timing corners, but the flow skipped design repair after
+global routing. The slow-corner report shows 3.382752 ns at the buffer
+input against a 2.507400 ns limit.
+
+Local Codex enabled post-global-routing design repair, set its maximum wire
+length to 400 µm and its slew margin to 20%. A wire following the archived
+route exceeds that threshold and is eligible for buffering. The margin gives
+detailed routing and extraction headroom. The final slew checker now covers
+all corners. Its previous corner pattern matched none of the reported names.
+
+Local checks confirmed that all four settings exist in the archived LibreLane
+configuration and survive the merge with the generated project settings.
+All three RTL files and both SDCs match the archived RX submission.
+`python scripts/workflow.py check` passed. Physical validation was completed
+by the official GDS workflow recorded above. The acceptance criteria require
+zero final slew and fanout violations at each corner, nonnegative setup and
+hold slack, and passing antenna, DRC, LVS, precheck and gate-level tests.
+
+## UART RX physical review
+
+The supplied archives identify commit `a22bd464b1f2313dff87b8657b47f85f64cbb999`
+and [Actions run 44849276133](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44849276133).
+Archived RTL and SDC files match that commit after newline normalization.
+LibreLane 3.1.0.dev4 used ihp-sg13cmos5l at
+`89d42ee6d2fd9b50b86a1aada6fee6673c3e6008`.
+
+| Corner | Setup slack | Hold slack | Fanout violations | Slew violations |
+| --- | ---: | ---: | ---: | ---: |
+| Fast | +29.003814 ns | +0.107079 ns | 0 | 0 |
+| Typical | +28.610882 ns | +0.283972 ns | 0 | 0 |
+| Slow | +27.945941 ns | +0.602444 ns | 0 | 2 |
+
+Timing uses the 50 ns target and original sign-off constraints. Total negative
+setup and hold slack is zero. Final routing and Magic DRC, antenna and LVS
+mismatch metrics are zero. All ten prechecks passed, with zero items in the
+three KLayout DRC reports. The gate-level XML records test_engine_pins passing
+after 14,564,350 ns, covering the shared RX/TX/pulse bench from this commit.
+The gate-level and precheck archives have no embedded commit ID. Their
+association with the GDS run follows the supplied artifact bundle.
+
+Physical closure remains open for the two slow-corner slew entries.
+`_07127_/Y` (sg13cmos5l_nor4_1) drives `_07128_/A`
+(sg13cmos5l_buf_4) on `_02409_`. Both share a 2.507400 ns limit.
+Reported slews are 3.382252 ns and 3.382752 ns respectively, with
+slacks -0.874852 ns and -0.875352 ns. The driver has one load and
+0.130758 pF reported capacitance. This path still meets setup timing.
+The flow log reports the offending corner and then prints
+"No max slew violations found". The final metrics and detailed checks agree
+on two violations. Repair this route or its driver and repeat the official
+flow with zero slew violations required across all corners.
+
+The routed netlist retains all eight protocol-input synchronizer pairs.
+Each first-stage Q reaches only its matching second-stage D, including any
+inserted buffers or hold-delay cells. The reset release stage has 252 reported
+downstream recovery and removal endpoints at every corner. Worst recovery
+slack is +45.684490 ns, worst removal slack +0.237778 ns.
+Maximum tabulated clock-to-MISO delay is 6.117070 ns. Maximum tabulated
+ena-to-OE-disable delay is 2.518820 ns. These are macro-boundary values over
+the generated load tables, excluding external pads, mux and board.
+
+Full artifacts, archive SHA-256 values and parsed results are in the outer
+checkout's ignored `runs/uart-rx-gds/` directory and
+`reviewed-results.json`. Local Codex reviewed these results and recorded
+the open slew repair. A new physical repair run remains pending.
+
+## UART RX on `local/uart-rx`
+
+Local Codex added synchronized protocol inputs, the 13-word receive program
+and the four-byte RX FIFO on top of FIFO TX commit `04cfa13`. The pin bench
+loaded the program over SPI, drove P2 as an independent 8N1 transmitter,
+and read back consecutive bytes 96, 00, FF and 53 (hex). A fifth frame
+faulted and preserved those four bytes. A bad stop bit faulted while an
+earlier byte remained readable. After CLEAR and START, byte A9 was received.
+The test also rejected a 2 us start pulse. Bit intervals exercised were
+8571, 8681 and 8801 ns at the 20 MHz system clock.
+
+The behavioral RTL and pin bench are at `91c7194`. The direct FIFO bench
+at `ca3b848` passed with simultaneous reads and writes on empty and full
+queues. The first run of the extended direct bench issued CLEAR before the
+preceding TX test had halted. The corrected bench retires HALT first.
+The local replays used Verilator 5.026, GCC 14.2.0 and no PDK. The completed
+pin run resumed the interrupted compilation with `python runs/resume.py`.
+Its manifest and logs are under `runs/verilator-engine-ezq06z5p/`. The
+simulator printed UART RX PIN CHECKS PASSED and ENGINE PIN CHECKS PASSED.
+The UART TX scoreboards and 29-sample pulse comparison passed. The edge
+replay (`python runs/verify_fifo_edges.py`) printed FIFO EDGE CHECKS PASSED.
+Its manifest is under `runs/verilator-fifo-edges-ljh7thpc/`. Both runners
+returned zero. All 42 software tests, the infrastructure check and design
+lint with the existing filename warning suppressed passed.
+
+Next, run the official GDS and gate-level jobs on this branch. Recheck fanout,
+setup and hold across corners, including the new protocol input synchronizers.
+
+## FIFO-fed UART TX on `local/uart-fifo`
+
+Local Codex implemented a four-byte TX FIFO, WRITE_TX, GET_TX and JMP, plus
+the streaming program and pin tests at `dd5f49a`. The exact-edge arbitration
+test and its RTL CI step are at `93e2edb`. WRITE_TX accepts writes before
+START or during execution, and uo[4] advertises free space. A full write
+returns status 5. The pin bench loaded the 13-word program and decoded
+96, 00, FF, 53, A9 and 3C (hex) at nominal 115200 baud, 8N1. The first
+five frames began 1740 clocks apart. The sixth began after FIFO starvation
+and a live refill. All 15,561 samples matched the expected transmission,
+idle hold and pin release. The fixed-byte UART test and the 29-sample pulse
+comparison also passed.
+
+Local behavioral replays used Verilator 5.026, MSYS2 GCC 14.2.0 and no PDK.
+`python runs/verify.py` at `dd5f49a` and `python runs/verify_fifo_edges.py`
+at `93e2edb` both returned zero. All recorded command exit codes were zero,
+and each bench printed its pass marker. The edge test checks forwarding on
+the final GET_TX timeout edge, a write arriving one edge too late, and
+concurrent pushes and pops with a full or partially filled queue.
+Local command manifests, logs and traces are in the ignored directories
+`runs/verilator-engine-nk41t29h/` and `runs/verilator-fifo-edges-k_8zdlk7/`.
+The 42 software tests and infrastructure check passed. Standalone design
+lint reported zero warnings with `-Wall -Wno-DECLFILENAME`. The shared
+pin bench elaboration retained three timescale and three width warnings.
+
+The physical-flow owner should run the official Tiny Tapeout GDS, gate-level
+pin regression, precheck and per-corner fanout and timing checks on the FIFO
+branch. Routed results and extracted host timing numbers below describe the
+prior `6c0b456` layout. Repeat path extraction on the FIFO layout.
+
+## UART fanout repair on `local/uart-fanout`
+
+The combined branch uses UART RTL from `525643a` and clock-tree settings
+from `5c4970c`. The UART build had 132 violations at each of three corners:
+127 clock leaves, the root clock buffer and four signal buffers. The worst
+clock leaf drove 17 loads against a limit of eight. Four antenna diodes on
+the UART signal net `_02092_` contributed to its ten loads.
+
+Clock tree synthesis requests four sinks per cluster and 80 um buffer
+spacing. The implementation signal-fanout target is four, leaving room for
+up to four more loads against the observed eight-load limit. Sign-off uses
+the original flow constraints. New placement and routing can change the
+diode count.
+
+The [combined GDS run](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44681569474)
+at `6c0b456` reported zero fanout violations across the three corners,
+worst setup slack +27.515 ns and worst hold slack +0.106 ns at 20 MHz.
+DRC, antenna, LVS, Tiny Tapeout precheck and the UART gate-level test passed.
+Local Codex traced the routed SPI synchronizers, reset distribution and
+output masking in the [CDC and reset review](CDC_REVIEW.md).
+
+## UART TX milestone on `local/uart-tx`
+
+Base commit `2503f78`; tested RTL and bench commit `709eecf`. Local Codex
+integrated the existing 13-word UART example, implemented LOAD_TX, TXBIT,
+LOOP and DJNZ and verified pin behavior. Server retains physical-flow ownership.
+
+The host loaded the example over SPI. At 20 MHz the simulated TX pin P1 was
+enabled high on edge 2, fell for start on edge 176 and was released on edge
+1916 after one full stop bit. Sampling at the nominal 115200-baud centers
+decoded 0x96 LSB first. Every driven bit lasted 174 clocks (8.70 us).
+The shared checker validates every sample of driven idle, start, data and
+stop, plus output enables, RUNNING and FAULT. The pulse and host regression
+also passed with all 29 reference samples matching.
+
+Local command: `python runs/verify.py` in this checkout. Verilator 5.026,
+MSYS2 GCC 14.2.0, behavioral RTL, no PDK. Elaboration, compilation, linking
+and simulation returned zero. The bench printed ENGINE PIN CHECKS PASSED.
+Commands, exit codes, hashes, CSVs and transcripts are in the ignored
+`runs/verilator-engine-7ir2j2zu/`. Additional runs verified MSB-first shifting
+and confirmed detection of an incorrect byte and shortened data bits. All 42
+software tests passed. A separate RTL-only `--lint-only -Wall` run exited 1
+on the existing top-module filename warning (DECLFILENAME). See
+`runs/uart-rtl-lint/`. On the original physical settings, the [UART GDS run](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44630829222) passed the gate-level test, timing, DRC, LVS and precheck with the fanout violations listed above.
+
+## Fanout repair on `local/fanout-repair`
+
+Local Codex owns this configuration change and baseline report review. Server
+Codex owns the physical rerun. The baseline is the official
+[run 44603796511](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44603796511)
+at `2503f7867acc23bd2d3b4dd65663ba0e3b42c86b`, after the reset edit.
+LibreLane 3.1.0.dev4 used ihp-sg13cmos5l at
+`89d42ee6d2fd9b50b86a1aada6fee6673c3e6008`. The archived final metrics
+show zero lint warnings, setup slack +28.208 ns and hold slack +0.108 ns.
+The archives preserve per-step commands. Top-level job exit codes were absent.
+
+All three post-route corners list the same 128 pins in
+`55-openroad-stapostpnr/<corner>/checks.rpt`. Each has a limit of eight.
+The root clock buffer drives 16 branches and 124 leaf clock buffers drive
+11 to 16 loads each. In the final netlist, `fanout498/X` drives eight logic
+loads and three antenna diodes. Both `fanout228/X` and `fanout248/X` drive
+eight logic loads and one antenna diode.
+
+The candidate configuration requests four sinks per CTS cluster and 80 um
+clock-buffer spacing to encourage intermediate branches. P&R uses a fanout
+target of five so repair can leave room for the three additional diode loads
+seen in the baseline. Both SDC files source the flow's base constraints.
+Sign-off uses the original fanout limits. The [minimal-engine rerun](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44629495353) reported zero fanout violations at every corner. Check the resolved configuration, actual CTS command, and
+final per-corner `checks.rpt` **and** fanout metric. Acceptance requires zero
+fanout violations in each corner, nonnegative setup and hold slack at 50 ns,
+and passing DRC, antenna, LVS, precheck and gate-level tests. The separate
+CDC/reset constraints review is recorded above for the combined layout.
+
+The repository's standalone pin bench passed on the exact baseline RTL using
+Verilator 5.026 and MSYS2 GCC 14.2.0 (behavioral simulation, no PDK).
+Questa and ModelSim both stopped at launch with Windows error 623.
+The local replay command was `python runs/fanout-rtl-check.py` in the parent
+checkout. `runs/verilator-engine-8s05nu2p/result.json` there records the commit,
+source hashes, tool versions, commands and exit codes. Elaboration, compilation
+and simulation returned zero. Elaboration reported three module timescale and
+three bench width warnings. Simulation printed `ENGINE PIN CHECKS PASSED`,
+and the model comparison matched all 29 rows. P0 rose on edge 3, fell on 23
+and was released on 28. All 42 software tests and the infrastructure check
+also passed.
+
+## Earlier minimal engine status
 
 - Official template imported at 4b1204ab387b5ab94db1d57067051d8d89a2f83c.
-- Origin is configured for Davis-Lester/Protocol-Emulator-ASIC. No remote state,
-  push or Actions result was verified in this task.
-- Initial architecture selected in docs/ARCHITECTURE.md. Metadata/pin names describe
-  the planned engine; RTL and testbench still implement the template adder.
+- The official flow now targets tt_um_davis_lester_protocol_emulator. The
+  original adder is preserved in src/project.v and in the c9e002c baseline.
 - info.yaml targets 20 MHz; src/config.json uses a matching 50 ns period.
 - Assembler and Python cycle-level model implement all 16 ISA instructions, with
   atomic loading/control, four-byte FIFOs, synchronized protocol inputs and pin safety.
 - Timed-pulse example runs in the model: P0 high at edge 3, low at 23, released
   at 28; 20 cycles high = 1 us at an assumed 20 MHz. No actual clock is measured.
-- No engine RTL, RTL simulation pass, area result, timing closure or EDA result claimed.
+- Minimal engine RTL passed its SPI/pulse simulation in Questa. The first
+  physical run at 8eaae90 passed the checks recorded below.
 - Software-task source commit: c9e002ce6db3d3e4f6e151e9f619cdad7af516ba.
 
 ## Ownership
 
 - Local: specification, cycle model, assembler/host tooling, documentation and review.
-- Server: EDA inventory, simulations, Cadence/custom macro execution.
-- Software task: local/assembler-model in an isolated checkout. The original
-  School checkout remains outside this chat's writable roots; deliver as a patch.
-  The owner previously chose to integrate completed changes into main. No original
-  checkout edits, commits or pushes are performed by this task.
+- Local/minimal-engine: RTL, host parser, pin verification and local Questa
+  execution. The owner ran Questa from PowerShell and Codex reviewed the logs.
+- Server: EDA inventory, synthesis and Cadence/custom macro execution.
+
+## Engine simulation, 2026-11-19
+
+Follow-up lint review removed the synchronous rst_n check from the program-memory
+write enable. The asynchronously reset loading/count state already rejects
+WRITE_WORD while reset is held. This addresses the reported SYNCASYNCNET cause.
+The earlier passing simulation below predates this edit. The new local attempt
+in runs/questa-engine-_6aotr9g/ was blocked by Windows error 623. Re-run Questa
+and the GitHub linter on the updated source before accepting the fix.
+
+- Base commit fa9859ffc9d537af55e3f009a3585added1f1d59 plus working-tree RTL
+  on local/minimal-engine. Run manifest records SHA-256 for each source, bench,
+  program, assembler, model and runner. Hashes matched the reviewed checkout.
+- Command: `python scripts/questa_engine.py --bin "C:\intelFPGA\23.1std\questa_fse\win64"`.
+  Questa Intel Starter FPGA Edition 2023.3, behavioral RTL, no PDK used.
+  Version queries, vlib, vlog and vsim each returned 0. Compilation reported
+  zero errors and warnings. Simulation printed ENGINE PIN CHECKS PASSED at 7532 us.
+- The host loaded the assembled seven-word image over mode-0 SPI. At acceptance
+  RUNNING went high. All 29 samples (acceptance through HALT) matched the Python
+  model for OUT, OE, RUNNING and FAULT. P0 was enabled low on edge 2, high on
+  edge 3, low on edge 23, then released with RUNNING low on edge 28.
+- Assertions covered malformed and aborted requests, short and excess loads,
+  protected writes while running, STOP, sticky faults, CLEAR, deselection,
+  open drain and past-end fetch at address 64. The remaining twelve opcodes
+  and the byte FIFOs are future work.
+- Full logs, per-command exit codes, manifest and observed CSV:
+  `runs/questa-engine-3bzq6mpy/` (ignored). The local Codex process launch
+  failed with Windows error 623 in a separate attempt.
+
+## Minimal engine physical results, 2026-11-19
+
+The owner supplied four archives in `runs/minimal-engine-before-lint-fix/`.
+Submission and GDS provenance identify commit
+8eaae90b08829eec3e719fa984109384eaa95a9a and
+[run 44587959919](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44587959919).
+Archived engine RTL matches that commit after newline normalization.
+
+| Measurement or check | Inspected result |
+| --- | --- |
+| Flow / PDK | LibreLane 3.1.0.dev4, ihp-sg13cmos5l, revision 89d42ee6d2fd9b50b86a1aada6fee6673c3e6008 |
+| GDS | flow.log ends with Flow complete; final layout present |
+| Footprint | 1724.16 x 710.64 um, about 1.22526 mm^2 |
+| Synthesis | 7474 cells, 159767.2944 um^2 |
+| Placed standard cells | 10146 cells, 199513 um^2, 16.5136% core utilization |
+| Sequential cells | 1715 cells, including the register-based instruction memory |
+| Magic DRC / routing DRC | Zero final violations |
+| LVS | Circuits match uniquely; zero mismatch metrics |
+| Precheck | Ten testcases passed; all three KLayout DRC XML reports have zero items |
+| Gate-level test | test_engine_pins passed, 7532000 ns simulated |
+| Timing target | 50 ns (20 MHz), fast/typical/slow corners |
+| Setup / hold | Worst setup slack +28.0207936 ns, hold +0.1068759 ns; TNS zero |
+| Register-to-register setup | Worst slack +36.098003 ns |
+| Fanout | 136 reported maximum-fanout violations, open for review |
+| Lint | Zero errors, one SYNCASYNCNET warning in this source revision |
+
+Precheck and gate-level XML contain no commit ID. Their run association relies
+on the owner-supplied bundle. The gate-level result uses the pin tests and pulse
+scoreboard. A separate RTL test artifact was absent. Raw GitHub job exit statuses
+and top-level invocation logs were absent. Per-step COMMANDS files, reports and
+the final SDC remain in GDS_logs (1).zip. Parsed metrics and archive SHA-256
+hashes are saved in `reviewed-results.json` beside the archives.
+
+Timing uses generic fallback SDC, including 10 ns clock-relative input/output
+delays for asynchronous host/reset inputs. Complete the CDC/reset constraint
+review and investigate the fanout violations before accepting physical closure.
+The flow uses Magic DRC, and the separate precheck performs KLayout CMOS5L DRC.
+XOR and EQY were skipped. The usual LEF58 enclosure and missing IR source-location
+warnings remain. The current reset lint fix postdates these results and needs
+fresh simulation/lint/physical verification.
+
+## Template reference
+
+The [reviewed Actions run](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44566481686)
+at c9e002ce6db3d3e4f6e151e9f619cdad7af516ba contains the original adder RTL
+with the 50 ns constraint. GDS completed, Magic DRC had zero errors, Netgen
+matched uniquely, all ten prechecks passed, and the supplied gate-level test
+passed. The 8x4 LEF is 1724.16 x 710.64 um. The adder used 821.923 um^2 of
+placed standard cells. LibreLane 3.1.0.dev4 used ihp-sg13cmos5l at
+89d42ee6d2fd9b50b86a1aada6fee6673c3e6008. See the reviewed archives and
+report under `runs/template-baseline/`. The separate adder RTL job is unverified.
 
 ## Next tasks
 
-1. Obtain original template simulation and official GDS/precheck results at the
-   original imported source commit 6d3c82c847ec117bc3dd2606402a6d0c22c5de6e;
-   record commands, versions, logs and pass/fail evidence.
-   Compare the 20 MHz constraint update separately. Keep a clean template
-   reference before replacing RTL.
-2. Local: use the implemented assembler/model as the software baseline. Add RTL
-   loading, OUT/OE/DELAY/HALT and compare its trace against the pulse model;
-   software tests alone do not verify RTL. Numeric SPI host response layout and
-   wire-level parser/reset/CDC tests are still required.
-3. Local: extend RTL to the remaining instructions, then UART TX/RX, SPI and I2C
-   programs with independent protocol checkers. No such examples are claimed yet.
-4. Server: synthesize the complete register-memory baseline early and report area
+1. Confirm host reset/select sequencing and the external MISO and pin-disable
+   timing budgets before changing the asynchronous interface constraints.
+2. Review the FIFO TX GDS results and run the UART RX physical checks above.
+   Continue with SPI and I2C programs and independent protocol checkers.
+3. Server: synthesize the complete register-memory baseline early and report area
    and timing before increasing memory or adding a custom macro.
 
 ## Environment evidence
 
-Previously observed: Python 3.12.7 and Git available; make and iverilog absent
-from PATH. Intel FPGA ModelSim executables were discoverable, which is not a
-license/compatibility test. No local EDA execution or server inventory is claimed.
+Python 3.12.7 and Git are available. The local Questa run above exercised its
+compiler, simulator and license. Make and Icarus were absent from the local
+PATH during review. ECE server inventory is pending.
 Record host/compute policy, tool versions, license checks, exact CMOS5L setup,
 flow dependencies and backup location after discovery. Never paste credentials.
 
@@ -54,9 +374,10 @@ flow dependencies and backup location after discovery. Never paste credentials.
 
 At the owner's request, AI assistance drafted the initial architecture, project
 metadata/pinout and documentation, then implemented the Python assembler/model,
-pulse example and software functional tests. No verified hardware is claimed.
+pulse example and software functional tests. For the first RTL milestone Codex
+implemented the SPI loader, pulse engine, Questa runner and pin-level checks.
 
-## Validation of this change
+## Software baseline validation (before RTL)
 
 - `python scripts/workflow.py test-model`: 42 tests passed under Python 3.12.7.
 - `python scripts/workflow.py demo`: model halts at cycle 28, releases pins and

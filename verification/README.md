@@ -21,8 +21,7 @@ collect the imported cocotb tests under test/, which require their own simulator
 - `test_cli.py`: real assembler/model processes, binary byte order, CSV/VCD edge
   times and nonzero failures for malformed source/images, faults and cycle limits.
 
-These tests validate a software implementation of the contract, not the ASIC.
-RTL/model comparison, independent UART/SPI/I2C protocol checkers, host SPI wire
-timing, reset-release/CDC behavior, Questa/formal harnesses, synthesis and physical
-verification remain future work. The imported test/ smoke tests still exercise
-the example adder only.
+The pulse RTL uses the pin driver and cycle comparison in [test/](../test/README.md).
+Its first Questa run is recorded in [the handoff](../docs/HANDOFF.md).
+Independent UART/SPI-controller/I2C program checks, physical CDC review and
+engine synthesis remain open.

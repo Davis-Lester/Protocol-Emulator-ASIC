@@ -1,9 +1,9 @@
 # Milestones and acceptance criteria
 
-1. Environment: import official template; record versions; pass its unchanged simulation and official GDS/precheck. No pass yet.
+1. Environment: adder GDS, DRC/LVS, precheck and gate-level test reviewed at c9e002c. Separate RTL test record still needed.
 2. Custom integration experiment: tiny CMOS5L macro through the required flow, with clean applicable DRC/LVS and valid timing/power views. No macro yet.
 3. Architecture: initial pin mapping, instruction semantics, loading format, cycle timing, reset behavior and memory budget are selected in docs/ARCHITECTURE.md. Use this contract for the model/assembler and RTL. Memory capacity and clock target remain subject to early area/timing measurements; no fit or closure is claimed.
-4. RTL baseline: the assembler, 16-instruction Python cycle model and timed-pulse example now run with software tests. Next implement the host loader/minimal RTL and compare its waveform against the model; then demonstrate UART, SPI and I2C with independent protocol checking. No engine RTL or protocol examples are implemented yet.
+4. RTL baseline: SPI loading and pulse instructions passed the Questa pin-level test and cycle-model comparison. Both fixed-byte and FIFO-fed 115200-baud UART TX have pin-level checks. The UART RX example checks start and stop bits and queues bytes for SPI readback. SPI controller and I2C programs are next.
 5. Physical baseline: synthesize early, measure area, complete place-and-route and timing, run gate-level checks and precheck.
 6. Custom datapath: replace a verified RTL block with a repeated custom layout macro; compare behavior and post-layout timing. Keep working baseline available.
 7. Submission: review current rules/deadline, public licensing, architecture/ISA documentation, runnable examples, verification results and AI-use write-up.

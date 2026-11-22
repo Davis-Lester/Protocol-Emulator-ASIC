@@ -1,7 +1,8 @@
 # Version-one architecture
 
 Decision date: 2026-11-19. This is the initial implementation contract, not a
-claim of working hardware. The current RTL is still the imported template adder.
+claim of working hardware. The UART RX milestone implements all 16 instructions
+and the host commands described under Host loading and control.
 Memory size, clock frequency and protocol rates remain subject to synthesis,
 timing analysis and independent protocol tests. Change this document explicitly
 if those measurements require a different contract.
@@ -60,8 +61,9 @@ these asynchronous inputs and synchronizers in the physical flow.
 
 ## Pin contract
 
-These names describe the planned engine. They do not describe the current
-template adder, which adds ui_in and uio_in and drives uo_out with the sum.
+The engine uses the host SPI and P0-P7 pin mapping below. TX_READY reports
+space in the four-byte TX FIFO while selected and out of reset. RX_VALID
+indicates at least one byte is available in the four-byte RX FIFO.
 
 | Tiny Tapeout pin | Engine meaning |
 | --- | --- |
@@ -146,7 +148,7 @@ receiving a request. The falling edge after the last request bit launches the
 first response bit. Snapshot response data when accepting a complete request;
 commands commit once per complete request. Incomplete requests have no effect;
 extra clocks after the response return zero until CS rises. The numeric status
-and fault codes will be assigned alongside the host parser and its tests.
+and fault codes for the pulse engine are defined below.
 
 | Command | Payload / response | Access rule |
 | --- | --- | --- |
@@ -160,6 +162,24 @@ and fault codes will be assigned alongside the host parser and its tests.
 | 0x07 WRITE_TX | One byte to enqueue | May run concurrently with engine |
 | 0x08 READ_RX | No payload; dequeue and return one byte if available | May run concurrently with engine |
 | 0x09 CLEAR | No payload; clear fault, shifters/counters, FIFO contents and output/OE latches | Stopped only; preserve committed program and OD mask |
+
+The RTL supports commands 0x00 through 0x09. The first response byte is 0
+for accepted, 1 for unsupported command, 2 for wrong payload length, 3 for
+invalid state, 4 for invalid word count, 5 for a full TX FIFO and 6 for an
+empty RX FIFO. A successful READ_RX returns one byte. An empty read returns
+status 6 even if PUT_RX enqueues on that edge. With a full FIFO, an accepted
+read returns the oldest byte and frees its slot for a simultaneous PUT_RX. A full WRITE_TX is rejected even if GET_TX pops on that
+edge. With an empty queue, GET_TX can consume a simultaneous WRITE_TX directly.
+The next byte gives the response payload length. A successful STATUS returns six
+bytes: version (1), flags (bit 0 RUNNING, bit 1 FAULT, bit 2 RX_VALID, bit 3 TX_READY, other bits zero),
+fault code (0 clear, 1 illegal or unimplemented instruction, 2 PC out of range,
+3 WAIT timeout, 4 TX timeout, 5 RX timeout, 6 loop underflow, or the TRAP immediate),
+PC (including the diagnostic past-end value 64), TX count (0–4) and RX count (0-4).
+Commands other than STATUS and READ_RX return zero payload bytes. STATUS snapshots the state just
+before execution on the acceptance edge. START raises RUNNING on acceptance;
+instruction edge 1 is the next system clock edge. Hold reset low across at
+least one rising clock edge with ena high, then keep CS high for at least eight
+clocks after releasing reset before beginning a transaction.
 
 Response status reports command acceptance, not engine completion. START never
 implicitly clears faults. Reject writes to program/configuration while running.
