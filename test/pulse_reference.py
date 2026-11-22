@@ -27,6 +27,11 @@ def prepare(directory):
     if len(rx) != 13:
         raise ValueError("Update the RX loader for the new program length")
     (directory / "uart_rx.hex").write_text(hex_text(rx))
+    with (directory / "spi_programs.hex").open("w") as stream:
+        for mode in range(4):
+            image = assemble((ROOT / "programs" / f"spi_mode{mode}.asm").read_text())
+            stream.write(f"{len(image):x}\n")
+            stream.write(hex_text(image))
     model = Engine()
     model.load_program(words)
     model.start()
