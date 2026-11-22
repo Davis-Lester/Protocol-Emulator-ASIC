@@ -21,6 +21,13 @@ a false start, framing and overrun faults, FIFO order and restart after CLEAR.
 The core bench also reads on the exact edge that PUT_RX writes to an empty
 or full queue.
 
+The same pin driver loads each SPI mode over the host port. Its peripheral
+checker decodes six MOSI bytes per mode, drives a different MISO sequence
+and checks every reply through READ_RX. It also checks SCK polarity, which
+edge samples data, 500 ns clock halves, CS setup and hold, FIFO stalls and
+STOP release. It delays each MISO launch and expires the bit after sampling
+so that a receiver sampling on the opposite edge sees incorrect data.
+
 ## Setting up
 
 The Linux workflow uses Icarus, make and `test/requirements.txt`.
