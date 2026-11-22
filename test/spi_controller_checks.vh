@@ -49,11 +49,14 @@ always @(negedge clk) begin
                 end else if ($time - last_sck != 500) fail("incorrect SCK half-period");
                 edges = edges + 1;
                 last_sck = $time;
-                if ((sck != cpol) != cpha) begin
+                if (cpha ? (sck == cpol) : (sck != cpol)) begin
                     if ($time - last_mosi < 400 || mosi !== controller_tx[frames][7-samples]) begin
                         $display("SPI mode %0d frame %0d bit %0d MOSI=%b", controller_mode, frames, samples, mosi);
                         fail("controller MOSI bit or setup time");
                     end
+                    // Expire this bit after its hold time. Sampling on the
+                    // opposite edge now sees the inverse, even on 00/FF.
+                    target_miso = ~target_tx[frames][7-samples];
                     samples = samples + 1;
                 end else if (samples < 8) begin
                     target_miso = target_tx[frames][7-samples];
@@ -75,7 +78,7 @@ task run_spi_controller;
         target_tx[0] = 8'h69; target_tx[1] = 8'hd2; target_tx[2] = 8'h00;
         target_tx[3] = 8'hff; target_tx[4] = 8'h35; target_tx[5] = 8'h81;
         images = $fopen("sim_build/spi_programs.hex", "r");
-        if (!images) fail("cannot open assembled SPI programs");
+        if (images == 0) fail("cannot open assembled SPI programs");
         for (mode = 0; mode < 4; mode = mode + 1) begin
             reset_chip;
             if ($fscanf(images, "%h", length) != 1 || length < 1 || length > 64)
