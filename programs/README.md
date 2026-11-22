@@ -17,7 +17,8 @@ viewer if one is installed.
 
 The high pulse is 20 cycles, or 1000 ns at an assumed 20 MHz. `DELAY 19` occupies
 19 edges; the following OUT adds one more cycle between the two output writes.
-This program demonstrates the Python model only; the template RTL has not been
-replaced. Actual chip frequencies and pulse widths have not been measured.
+The shared pin test compares this pulse program against the Python model.
 
-UART, SPI and I2C programs and independent protocol checkers are still to come.
+The [project README](../README.md) gives the wiring and host sequences for
+the UART, SPI and I2C programs. For I2C, `python -m tools.i2c --help` describes
+how to assemble the timing and direction templates and generate a transaction.

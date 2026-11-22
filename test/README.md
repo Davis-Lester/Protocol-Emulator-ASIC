@@ -28,6 +28,17 @@ edge samples data, 500 ns clock halves, CS setup and hold, FIFO stalls and
 STOP release. It delays each MISO launch and expires the bit after sampling
 so that a receiver sampling on the opposite edge sees incorrect data.
 
+The I2C test uses an independent target at address 0x53 on the resolved bus.
+It decodes START, repeated START, STOP, address, data and ninth-clock ownership.
+It checks the Standard- and Fast-mode clock, SDA setup and framing minima
+from [NXP UM10204, Table 11](https://www.nxp.com/docs/en/user-guide/UM10204.pdf).
+The digital bus model sinks immediately and delays a rising level for two
+clock samples. Board capacitance, analog edges and pad thresholds require
+measurement. The cases include address, data and repeated-address NACKs,
+stretching during data and after ACK, a stretch timeout, restart after CLEAR,
+and a six-byte read with a full RX FIFO. Results are read over the host SPI
+port. A two-stage chip input synchronizer follows the modeled P7 pad readback.
+
 ## Setting up
 
 The Linux workflow uses Icarus, make and `test/requirements.txt`.

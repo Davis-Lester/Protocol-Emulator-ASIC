@@ -1,0 +1,22 @@
+; Receive bytes, returning each one to the host before its ACK clock.
+    OUT 8,8
+    LOOP 8
+rx_bit:
+    DELAY {rx_low}
+    OUT 4,4
+    WAIT P2,1,1000
+    DELAY {rx_high}
+    RXBIT P3,MSB
+    OUT 4,0
+    DJNZ rx_bit
+    PUT_RX 0
+    GET_TX 0
+    TXBIT P3,MSB
+    DELAY {low}
+    OUT 4,4
+    WAIT P2,1,1000
+    DELAY {high}
+    LOOP 1
+    BRPIN P3,1,stop
+    OUT 4,0
+    JMP after_send

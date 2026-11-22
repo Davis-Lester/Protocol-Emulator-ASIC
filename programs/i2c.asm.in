@@ -1,0 +1,54 @@
+; 20 MHz single-controller I2C. Configure open drain on P2/SCL and P3/SDA.
+; tools.i2c supplies delay counts and the requested direction's end sequence.
+start:
+    WAIT P3,1,1000 ; On repeated START, SDA must already be high before SCL rises.
+    OUT 12,12
+    OE 140,140     ; P7 is an unconnected push-pull control-bit readback.
+    WAIT P2,1,1000
+    DELAY {bus_free}
+    OUT 8,0
+    DELAY {high}
+    OUT 4,0
+send:
+    GET_TX 0
+    LOOP 8
+tx_bit:
+    DELAY 6        ; Hold SDA after SCL falls, including the first data bit.
+    TXBIT P3,MSB
+    DELAY {tx_low}
+    OUT 4,4
+    WAIT P2,1,1000
+    DELAY {tx_high}
+    OUT 4,0
+    DJNZ tx_bit
+    OUT 8,8
+    DELAY {low}
+    OUT 4,4
+    WAIT P2,1,1000
+    DELAY {high}
+    BRPIN P3,1,nack
+    OUT 4,0
+    GET_TX 0
+    TXBIT P7,MSB
+    DELAY {low}
+    BRPIN P7,0,after_send
+    TXBIT P7,MSB
+    DELAY 4
+    BRPIN P7,1,start
+    JMP send
+after_send:
+{finish}
+nack:
+    LOOP 2
+stop:
+    OUT 4,0
+    DELAY 6
+    OUT 8,0
+    DELAY {low}
+    OUT 4,4
+    WAIT P2,1,1000
+    DELAY {high}
+    DJNZ failed
+    HALT
+failed:
+    TRAP 0x81

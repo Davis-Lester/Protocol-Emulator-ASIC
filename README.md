@@ -3,7 +3,7 @@
 This Tiny Tapeout project targets IHP CMOS5L and 8x4 tiles. The Python assembler
 and cycle model support all 16 instructions. The RTL loads 64 x 24-bit program
 memory over SPI. The example programs generate timed pulses, transmit or receive UART,
-and drive a full-duplex SPI peripheral. See [the architecture](docs/ARCHITECTURE.md).
+drive a full-duplex SPI peripheral, and control a 7-bit I2C target. See [the architecture](docs/ARCHITECTURE.md).
 
 ## Run the pin tests
 
@@ -76,6 +76,48 @@ peripheral mode by loading the corresponding program.
 These examples frame each byte separately. A peripheral that needs command,
 address and data under one CS assertion needs a program that holds P0 low across
 those bytes.
+
+## Talk to an I2C target
+
+Connect P2 to SCL and P3 to SDA, each with an external pull-up to a compatible
+I/O supply. Leave P7 unconnected so its pad reads back the level it drives. The program
+drives a host control bit on P7 and branches on its synchronized value. This
+lets a target hold SDA low across an ACK while stretching SCL. The target sees
+only SCL and SDA. This example uses one controller with a 20 MHz project clock.
+
+For example, write register index 0x5A to target 0x53 and read two bytes back
+under a repeated START. From the repository root run
+
+```sh
+python -m tools.i2c --rate 400 --address 0x53 --write 5a --read 2 -o i2c.hex
+```
+
+1. With the engine stopped, send CLEAR and CONFIG_OD with mask `0x0C`. Load
+   the hex words with BEGIN_LOAD and WRITE_WORD, then COMMIT_LOAD. The write
+   image uses 46 words. Direct and combined reads use the same 64-word image.
+   Use `--rate 100` for the slower timing.
+2. Queue up to four of the printed bytes using WRITE_TX and issue START.
+   This example produces `A6 80 5A C0 A7 00 00 80`. Only `A6 5A` and
+   the repeated address `A7` are transmitted as data bytes on I2C. The
+   remaining bytes tell the program when to continue, restart, ACK, or NACK.
+3. Feed the remaining bytes whenever TX_READY is set. Service RX_VALID with
+   READ_RX while waiting, especially for reads longer than four bytes. The
+   engine holds SCL low while it waits for either FIFO. Check FAULT while
+   servicing both queues because a target NACK can end the transfer early.
+4. The program sends the last-byte NACK on reads and generates STOP
+   automatically. Wait for RUNNING to clear and drain any remaining replies.
+   A target NACK generates STOP and fault `0x81`. A pin WAIT that expires
+   releases all outputs and reports `0x03`. Each WAIT permits 1,000 sampling
+   clocks (50 us), including synchronization. Clear stale FIFO bytes and
+   faults with CLEAR before starting a new transaction on an idle bus.
+
+Omit `--read` for a write, omit `--write` for a direct read, and omit both
+for an address-only write probe. After loading an image, software can change
+the address, payload, and length on each transaction using
+`tools.i2c.transaction`. The image selects the speed and whether the
+transaction ends in a read. Host SPI bandwidth, FIFO waits and clock stretching
+can reduce transaction throughput. Arbitration, target mode and 10-bit
+addressing are outside this program's scope.
 
 ## Run the software baseline
 
