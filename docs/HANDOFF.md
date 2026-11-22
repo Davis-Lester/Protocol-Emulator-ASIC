@@ -1,6 +1,49 @@
 # Current handoff
 
-Updated 2026-11-21.
+Updated 2026-11-22.
+
+## SPI controller physical review
+
+Local Codex reviewed the four supplied archives for
+[Actions run 44982346056](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44982346056).
+Submission provenance identifies `a32bf7ec04c6d100340d254570af80cf15699368`.
+Archived RTL, configuration, constraints, documentation and info.yaml match
+that revision after newline normalization. Every archive passed ZIP integrity
+checks. LibreLane 3.1.0.dev4 used ihp-sg13cmos5l revision
+`89d42ee6d2fd9b50b86a1aada6fee6673c3e6008`.
+
+| Corner | Setup slack | Hold slack | Slew / fanout / capacitance violations |
+| --- | ---: | ---: | --- |
+| Fast | +29.000325 ns | +0.107663 ns | 0 / 0 / 0 |
+| Typical | +28.605048 ns | +0.284878 ns | 0 / 0 / 0 |
+| Slow | +27.936758 ns | +0.603969 ns | 0 / 0 / 0 |
+
+Final extracted STA reports and submission metrics agree. The clock period
+is 50 ns, with zero setup and hold total negative slack. Final routing and
+Magic DRC, antenna and LVS metrics are zero. Netgen reports that the circuits
+match uniquely. All ten prechecks passed and the three KLayout DRC XML files
+contain zero items. Lint reports zero errors and warnings.
+
+The gate-level test_engine_pins passed after 22,786,350 ns. The shared bench
+at the source revision includes all four SPI modes with six full-duplex
+frames per mode, CS setup and hold, 500 ns SCK halves, FIFO stalls and STOP,
+plus the preceding UART and pulse checks. The job uses functional cell
+models. Corner timing acceptance follows extracted STA. Gate-level and
+precheck XML contain no embedded commit, so their association follows the
+supplied bundle. Top-level job command transcripts and exit codes were absent.
+The archive preserves physical step COMMANDS and detailed reports.
+
+The routed netlist, OASIS layout and final metrics are byte-identical to
+the reviewed UART RX slew-repair artifacts. Placed standard-cell area is
+261800 um² and core utilization is 21.6691%. This run exercises the additional
+SPI programs on that hardware implementation.
+
+Archive hashes, source comparisons, commands and parsed acceptance results
+are in the outer checkout's ignored
+`runs/spi-controller-gds/reviewed-results.json`. Reproduce the archive review
+with `python runs/spi-controller-gds/review.py` from the outer checkout.
+The SPI milestone is ready for integration review. I2C controller programs
+and an independent target checker are next.
 
 ## SPI controller on `local/spi-controller`
 
@@ -32,11 +75,8 @@ Manifests and logs are in this worktree's ignored directories
 and `runs/spi-negative-controls-ajzdv0k_/`.
 
 The RTL, physical configuration, constraints and GDS workflow match those
-used for the passing UART RX layout at `8cb7eb0`. The new SPI stimulus
-still needs the official gate-level run. On the pushed branch, review the
-gate-level result and the generated per-corner timing, slew, fanout, DRC,
-antenna, LVS and precheck reports. Put the four downloaded archives in the
-outer checkout's `runs/spi-controller-gds/` directory.
+used for the passing UART RX layout at `8cb7eb0`. The official physical
+and gate-level review is recorded above.
 
 ## UART RX slew repair on `local/uart-rx-slew`
 
@@ -393,8 +433,8 @@ report under `runs/template-baseline/`. The separate adder RTL job is unverified
 
 1. Confirm host reset/select sequencing and the external MISO and pin-disable
    timing budgets before changing the asynchronous interface constraints.
-2. Run the SPI controller gate-level regression and review the official
-   artifacts. I2C controller programs and an independent target checker are next.
+2. Integrate the reviewed SPI controller branch. Continue with I2C controller
+   programs and an independent target checker.
 3. Server: synthesize the complete register-memory baseline early and report area
    and timing before increasing memory or adding a custom macro.
 
