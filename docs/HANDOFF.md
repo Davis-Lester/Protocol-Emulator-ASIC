@@ -4,6 +4,43 @@ Updated 2026-11-20.
 
 ## UART RX slew repair on `local/uart-rx-slew`
 
+The [repair run 44863037788](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/44863037788)
+at `8cb7eb05cb305c48c688dcdc976a4ba89c104578` passes the reviewed UART RX
+physical acceptance checks. Archived RTL, configuration and SDC files match
+that commit after newline normalization. LibreLane 3.1.0.dev4 used
+ihp-sg13cmos5l revision `89d42ee6d2fd9b50b86a1aada6fee6673c3e6008`.
+
+| Corner | Setup slack | Hold slack | Slew / fanout / capacitance violations |
+| --- | ---: | ---: | --- |
+| Fast | +29.000325 ns | +0.107663 ns | 0 / 0 / 0 |
+| Typical | +28.605048 ns | +0.284878 ns | 0 / 0 / 0 |
+| Slow | +27.936758 ns | +0.603969 ns | 0 / 0 / 0 |
+
+The final detailed reports and submission metrics agree on all corner counts.
+Setup and hold total negative slack is zero at the 50 ns clock target.
+Routing and Magic DRC, antenna and LVS metrics are zero. All ten prechecks
+passed, with zero items in all three KLayout DRC XML files. The gate-level
+test_engine_pins passed after 14,564,350 ns, exercising the shared UART RX,
+UART TX and pulse tests. Precheck and gate-level XML have no embedded commit.
+Their association follows the supplied artifact bundle.
+
+Post-global-routing repair ran with the requested 400 µm wire length and
+20% slew margin. It inserted 175 buffers in 151 long nets. OpenROAD warned
+that the length limit was below its delay-optimal value of 4688 µm.
+The final setup and hold reports above account for the resulting routed design.
+Placed standard-cell area is 261800 µm² and utilization is 21.6691%.
+All eight protocol-input synchronizer pairs remain intact. The 252 reported
+downstream reset-release paths meet recovery and removal at every corner.
+Worst recovery slack is +45.871578 ns and removal slack is +0.250429 ns.
+Maximum tabulated macro clock-to-MISO delay is 5.821650 ns and
+ena-to-OE-disable delay is 2.520360 ns, excluding wrapper, pad and board delays.
+
+The outer checkout's ignored `runs/uart-rx-slew-gds/reviewed-results.json`
+records archive hashes, provenance, source comparisons and parsed results.
+The UART RX branch is ready for integration review.
+
+### Repair diagnosis
+
 The final DEF from RX run 44849276133 shows 685.44 µm of metal between
 NOR4 output `_07127_/Y` and its single buffer load `_07128_/A`. The global
 route guide already shows the detour to the left edge. The placement repair
@@ -20,11 +57,10 @@ all corners. Its previous corner pattern matched none of the reported names.
 Local checks confirmed that all four settings exist in the archived LibreLane
 configuration and survive the merge with the generated project settings.
 All three RTL files and both SDCs match the archived RX submission.
-`python scripts/workflow.py check` passed. Physical validation requires
-the official GDS workflow. Check that `OpenROAD.RepairDesignPostGRT` ran,
-then require zero final slew and fanout violations at each corner, nonnegative
-setup and hold slack, and passing antenna, DRC, LVS, precheck and gate-level
-tests. Instance and net names may change in the reroute.
+`python scripts/workflow.py check` passed. Physical validation was completed
+by the official GDS workflow recorded above. The acceptance criteria require
+zero final slew and fanout violations at each corner, nonnegative setup and
+hold slack, and passing antenna, DRC, LVS, precheck and gate-level tests.
 
 ## UART RX physical review
 
