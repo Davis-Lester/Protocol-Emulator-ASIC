@@ -38,8 +38,13 @@ allocation is not proof that the design fits.
 UART transmit and receive are separate uses of the engine. SPI full duplex means
 sampling MISO while producing MOSI in one controller program, not two engines.
 Host SPI can operate while an engine program runs, subject to the access rules
-below. Rate targets must be demonstrated with independent decoders; they are not
-current supported capabilities.
+below. The supplied SPI images exchange one MSB-first byte per CS assertion.
+At 20 MHz they budget ten clocks for each SCK half-period, ten clocks for CS
+setup and ten clocks for CS hold. RXBIT executes two system clocks after the
+selected sample edge to read the MISO value captured on that edge by the first
+input synchronizer stage. GET_TX and PUT_RX can wait indefinitely with CS high.
+The [program and host instructions](../README.md#talk-to-an-spi-peripheral)
+list the sampling edge and pin assignments for each mode.
 
 At 20 MHz a 1 MHz SPI bit has 20 system cycles. A 100 kHz I2C bit has at least
 200 cycles; a 400 kHz bit has at least 50. The assembler must budget instruction

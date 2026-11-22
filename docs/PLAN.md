@@ -3,7 +3,7 @@
 1. Environment: adder GDS, DRC/LVS, precheck and gate-level test reviewed at c9e002c. Separate RTL test record still needed.
 2. Custom integration experiment: tiny CMOS5L macro through the required flow, with clean applicable DRC/LVS and valid timing/power views. No macro yet.
 3. Architecture: initial pin mapping, instruction semantics, loading format, cycle timing, reset behavior and memory budget are selected in docs/ARCHITECTURE.md. Use this contract for the model/assembler and RTL. Memory capacity and clock target remain subject to early area/timing measurements; no fit or closure is claimed.
-4. RTL baseline: SPI loading and pulse instructions passed the Questa pin-level test and cycle-model comparison. Both fixed-byte and FIFO-fed 115200-baud UART TX have pin-level checks. The UART RX example checks start and stop bits and queues bytes for SPI readback. SPI controller and I2C programs are next.
+4. RTL baseline: SPI loading and pulse instructions passed the Questa pin-level test and cycle-model comparison. Both fixed-byte and FIFO-fed 115200-baud UART TX have pin-level checks. The UART RX example checks start and stop bits and queues bytes for SPI readback. The SPI controller examples cover modes 0 through 3 at 1 MHz with an independent peripheral checker. The I2C controller is the next program milestone.
 5. Physical baseline: synthesize early, measure area, complete place-and-route and timing, run gate-level checks and precheck.
 6. Custom datapath: replace a verified RTL block with a repeated custom layout macro; compare behavior and post-layout timing. Keep working baseline available.
 7. Submission: review current rules/deadline, public licensing, architecture/ISA documentation, runnable examples, verification results and AI-use write-up.

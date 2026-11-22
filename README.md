@@ -2,10 +2,10 @@
 
 This Tiny Tapeout project targets IHP CMOS5L and 8x4 tiles. The Python assembler
 and cycle model support all 16 instructions. The RTL loads 64 x 24-bit program
-memory over SPI. The 16 instructions support timed pin output and separate UART transmit
-and receive programs. See [the architecture](docs/ARCHITECTURE.md).
+memory over SPI. The example programs generate timed pulses, transmit or receive UART,
+and drive a full-duplex SPI peripheral. See [the architecture](docs/ARCHITECTURE.md).
 
-## Run the pulse and UART TX pin tests
+## Run the pin tests
 
 From the repository root on Windows:
 
@@ -44,6 +44,38 @@ A short start pulse is ignored. A low stop bit faults with code `80` hex.
 A fifth byte received while the queue is full faults with code `05`.
 Earlier bytes remain readable after either fault. Drain them, issue CLEAR,
 return P2 to idle high and issue START to resume.
+
+## Talk to an SPI peripheral
+
+Connect P0 to CS_N, P1 to MOSI, P2 to MISO and P3 to SCK. Use a pull-up on
+CS_N if the peripheral must stay deselected when the engine releases its pins.
+The host loading interface on `ui[2:0]` always uses mode 0. Select the
+peripheral mode by loading the corresponding program.
+
+| Program | SCK idle | Peripheral samples MOSI on |
+| --- | --- | --- |
+| [spi_mode0.asm](programs/spi_mode0.asm) | Low | Rising edge |
+| [spi_mode1.asm](programs/spi_mode1.asm) | Low | Falling edge |
+| [spi_mode2.asm](programs/spi_mode2.asm) | High | Falling edge |
+| [spi_mode3.asm](programs/spi_mode3.asm) | High | Rising edge |
+
+1. With the engine stopped, issue CLEAR to discard previous FIFO contents and
+   CONFIG_OD with mask zero for push-pull outputs. Assemble the chosen image,
+   then send BEGIN_LOAD, its WRITE_WORD commands and COMMIT_LOAD.
+2. Enqueue a byte with WRITE_TX and send START. Each queued byte produces
+   eight MSB-first clocks under one CS assertion. At a 20 MHz project clock,
+   SCK runs at 1 MHz, with 500 ns from CS assertion to the first edge and
+   500 ns from the final edge to CS release.
+3. When RX_VALID rises, use READ_RX to get the corresponding peripheral byte.
+   Enqueue more bytes while TX_READY is high. An empty TX queue leaves CS high
+   and SCK idle. A full RX queue can hold up delivery of the most recent reply.
+   CS returns high before that wait, and reading a byte allows the program to resume.
+4. Read the last expected reply before sending STOP for a clean finish.
+   STOP during a transfer aborts it and releases the pins.
+
+These examples frame each byte separately. A peripheral that needs command,
+address and data under one CS assertion needs a program that holds P0 low across
+those bytes.
 
 ## Run the software baseline
 
@@ -90,7 +122,7 @@ python scripts/workflow.py demo
 | src/, test/, info.yaml | Engine RTL, pin-level simulation and Tiny Tapeout configuration |
 | model/ | Cycle-level Python ISA model; host SPI wire timing is not modeled |
 | tools/ | Assembler for the SPI-loadable instruction images |
-| programs/ | Timed-pulse and fixed-byte UART TX programs |
+| programs/ | Timed pulse, UART TX/RX and SPI controller examples |
 | verification/ | Assembler and cycle-model tests |
 | macros/ | Portable custom-macro deliverables and interface contracts |
 | scripts/ | Reproducible setup and checks |

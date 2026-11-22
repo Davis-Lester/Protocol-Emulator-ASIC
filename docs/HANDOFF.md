@@ -1,6 +1,42 @@
 # Current handoff
 
-Updated 2026-11-20.
+Updated 2026-11-21.
+
+## SPI controller on `local/spi-controller`
+
+Local Codex added four loadable SPI images and a peripheral pin checker at
+`c535ffa`, then tightened the MISO timing check at `19904b4`. The branch
+starts at the reviewed UART RX revision `47dddce`. The programs drive a
+1 MHz SCK from the 20 MHz project clock and transfer one full-duplex,
+MSB-first byte per CS assertion. Modes 0 and 2 use 19 words. Modes 1 and 3
+use 18 words.
+
+The shared RTL and gate-level bench loads each assembled program through
+the host SPI port. At `19904b4` the local RTL run passed six distinct
+transfers per mode, with all 24 replies read in order. The monitor checked
+the selected sampling edge, 500 ns SCK halves, at least 500 ns of CS setup
+and hold, MOSI setup, inactive clocks during FIFO stalls and STOP pin
+release. It delayed target MISO and inverted it after the sampling window.
+Two negative controls independently detected a late RXBIT and a shortened
+SCK half-period.
+
+Local replay used Verilator 5.026 and GCC 14.2.0 with behavioral RTL and
+no PDK. `python runs/verify.py` passed all four mode markers, the UART
+checks and the 29-sample pulse comparison. Verilator reported about 23 ms
+of simulated time. All 25 recorded commands returned
+zero. The six existing timescale and bench width warnings were present.
+`python runs/verify_fifo_edges.py` passed the exact-edge FIFO checks.
+All 42 software tests and the workspace structure check passed.
+Manifests and logs are in this worktree's ignored directories
+`runs/verilator-engine-t5b4pglg/`, `runs/verilator-fifo-edges-dxp5nr94/`
+and `runs/spi-negative-controls-ajzdv0k_/`.
+
+The RTL, physical configuration, constraints and GDS workflow match those
+used for the passing UART RX layout at `8cb7eb0`. The new SPI stimulus
+still needs the official gate-level run. On the pushed branch, review the
+gate-level result and the generated per-corner timing, slew, fanout, DRC,
+antenna, LVS and precheck reports. Put the four downloaded archives in the
+outer checkout's `runs/spi-controller-gds/` directory.
 
 ## UART RX slew repair on `local/uart-rx-slew`
 
@@ -357,8 +393,8 @@ report under `runs/template-baseline/`. The separate adder RTL job is unverified
 
 1. Confirm host reset/select sequencing and the external MISO and pin-disable
    timing budgets before changing the asynchronous interface constraints.
-2. Review the FIFO TX GDS results and run the UART RX physical checks above.
-   Continue with SPI and I2C programs and independent protocol checkers.
+2. Run the SPI controller gate-level regression and review the official
+   artifacts. I2C controller programs and an independent target checker are next.
 3. Server: synthesize the complete register-memory baseline early and report area
    and timing before increasing memory or adding a custom macro.
 

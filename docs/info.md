@@ -12,6 +12,11 @@ The UART RX program receives 115200-baud 8N1 on P2. Read a byte with
 SPI command 0x08 when uo[3] is high. See
 [the architecture](ARCHITECTURE.md) for command bytes and timing.
 
+The four SPI controller programs exchange one MSB-first byte per CS assertion
+on P0 (CS_N), P1 (MOSI), P2 (MISO) and P3 (SCK). Load the image for the
+peripheral's mode, queue bytes with WRITE_TX and read corresponding replies
+with READ_RX. A 20 MHz system clock produces a 1 MHz peripheral clock.
+
 ## How to test
 
 With the chip selected, clock reset low then release it with host CS high.
