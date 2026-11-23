@@ -47,8 +47,29 @@ final reports and the gate-level waveform are present.
 Reproduce this review from the outer checkout with
 `python runs/jtag-controller-gds/review.py`. Parsed results and archive hashes
 are in `runs/jtag-controller-gds/reviewed-results.json`.
-The JTAG milestone is ready for integration review. The separate merged-main
-I2C artifacts have not been supplied in `runs/i2c-main-gds/`.
+The JTAG milestone is ready for integration review. The merged-main I2C review is recorded below.
+
+## Merged I2C baseline review
+
+Local Codex reviewed the four supplied archives for
+[Actions run 45205787143](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/45205787143).
+The submission identifies merged main commit
+`a44dfb0d8bd59d4eff65dcbb6729176af8b9ada4`. Archived source matches the
+commit after newline normalization and all ZIP integrity checks pass.
+
+The routed netlist, OASIS layout and metrics are byte-identical to the reviewed
+I2C branch artifacts. Fast, typical and slow setup/hold slack match the I2C
+table below, with zero setup/hold total negative slack and zero fanout, slew
+and capacitance violations. DRC, LVS and antenna checks pass. All ten prechecks
+pass and the three KLayout DRC XML files contain zero items. The gate-level
+test_engine_pins passes at 47,107,000 ns. Executable test inputs match the
+locally verified I2C commit 94f9c75.
+
+This confirms the merged I2C baseline used for the JTAG demonstration.
+The archive association and functional-model limitations described above also
+apply here. Reproduce the review from the outer checkout with
+`python runs/i2c-main-gds/review.py`. Parsed results and archive hashes are
+in `runs/i2c-main-gds/reviewed-results.json`.
 
 ## JTAG on the frozen pin engine
 
@@ -56,8 +77,7 @@ The baseline is merged main commit `a44dfb0d8bd59d4eff65dcbb6729176af8b9ada4`.
 Its RTL, constraints, physical configuration, assembler and cycle model match
 the reviewed I2C design at `94f9c75`. The src tree is
 `e05ebe7a249038f1658cc626f23a21c1d9dc97af`. Keep this baseline for the
-program-only demonstration. The separate merged-main physical run awaits
-artifact review.
+program-only demonstration. The merged-main physical run passes the review below.
 
 Local Codex implemented four-wire JTAG on `local/jtag-controller` at
 `c1aa491`. The controller image occupies 14 of the 64 available words.
