@@ -2,6 +2,54 @@
 
 Updated 2026-11-23.
 
+## JTAG gate-level and physical review
+
+Local Codex reviewed the four supplied archives for
+[Actions run 45207561284](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/45207561284).
+Submission provenance identifies `e43fd6c627526a69138462fc3dcaabd901254c45`.
+All archives pass ZIP integrity checks. Archived RTL, configuration, constraints,
+documentation and info.yaml match that commit after newline normalization.
+LibreLane 3.1.0.dev4 used ihp-sg13cmos5l revision
+`89d42ee6d2fd9b50b86a1aada6fee6673c3e6008`.
+
+| Corner | Setup slack | Hold slack | Slew / fanout / capacitance violations |
+| --- | ---: | ---: | --- |
+| Fast | +29.000325 ns | +0.107663 ns | 0 / 0 / 0 |
+| Typical | +28.605048 ns | +0.284878 ns | 0 / 0 / 0 |
+| Slow | +27.936758 ns | +0.603969 ns | 0 / 0 / 0 |
+
+Final extracted STA agrees with submission metrics at a 50 ns clock period.
+Setup and hold total negative slack are zero. Final routing and Magic DRC,
+antenna and LVS error metrics are zero. Netgen reports a unique circuit
+match. All ten prechecks pass and all three KLayout DRC XML files contain
+zero items. Lint reports zero errors and warnings. The flow error log is
+empty, and its warning log matches the previously reviewed SPI run.
+
+The gate-level test_engine_pins passes at 55,529,000 ns. Its shared testbench
+runs the 81-clock JTAG sequence after the earlier UART, SPI and I2C tests.
+It verifies reset, instruction selection, 13-bit register updates, BYPASS,
+FIFO stalls and STOP. The cocotb comparison checks scan data read through
+host SPI. The local regression and both negative controls were also
+rechecked against their saved input hashes and replies. Executable test
+inputs match between local tested commit c1aa491 and the submitted commit.
+
+The routed netlist, OASIS and metrics match the reviewed I2C artifacts byte
+for byte. Standard-cell area is 261800 square micrometers and core utilization
+is 21.6691%. JTAG runs through a new program and host software on the frozen
+hardware implementation. Physical hardware validation remains pending.
+
+Gate-level and precheck XML contain no embedded commit, so association follows
+the supplied bundle. The gate-level job uses functional cell models.
+Per-corner timing acceptance follows extracted STA. Top-level job transcripts
+and exit codes are absent from the supplied ZIPs. Physical step COMMANDS,
+final reports and the gate-level waveform are present.
+
+Reproduce this review from the outer checkout with
+`python runs/jtag-controller-gds/review.py`. Parsed results and archive hashes
+are in `runs/jtag-controller-gds/reviewed-results.json`.
+The JTAG milestone is ready for integration review. The separate merged-main
+I2C artifacts have not been supplied in `runs/i2c-main-gds/`.
+
 ## JTAG on the frozen pin engine
 
 The baseline is merged main commit `a44dfb0d8bd59d4eff65dcbb6729176af8b9ada4`.
