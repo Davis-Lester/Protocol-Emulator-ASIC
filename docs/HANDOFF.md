@@ -2,6 +2,36 @@
 
 Updated 2026-11-23.
 
+## JTAG on the frozen pin engine
+
+The baseline is merged main commit `a44dfb0d8bd59d4eff65dcbb6729176af8b9ada4`.
+Its RTL, constraints, physical configuration, assembler and cycle model match
+the reviewed I2C design at `94f9c75`. The src tree is
+`e05ebe7a249038f1658cc626f23a21c1d9dc97af`. Keep this baseline for the
+program-only demonstration. The separate merged-main physical run awaits
+artifact review.
+
+Local Codex implemented four-wire JTAG on `local/jtag-controller` at
+`c1aa491`. The controller image occupies 14 of the 64 available words.
+Host software selects the scan path, length and shifted value. See the
+[host instructions and wiring](../README.md#scan-a-jtag-target).
+
+The behavioral RTL regression passed on that commit with Verilator 5.026
+and GCC 14.2.0. All 26 recorded commands returned zero, all recorded input
+hashes match, and simulation finished at approximately 56 ms. The TAP saw
+81 clocks. From Pause-DR it reached Reset and then Idle. Both four-bit IR
+captures returned 0x5. Two 13-bit scans returned 0x1357 and then 0x1791.
+Eight-bit BYPASS returned 0x2C for 0x96 input, and one-bit BYPASS returned
+zero. Empty TX and full RX both held TCK low. All preceding protocol
+regressions and all 45 software tests passed.
+
+Two corrupted copies of the image exercised the independent checkers.
+Misrouting TMS failed the reset-sequence assertion. Sampling P0 in place
+of TDO failed the host IR readback comparison. Full logs and command
+records are in this worktree's ignored `runs/verilator-engine-_utcqjpj/`,
+`runs/drop_tms-r161jzf0/` and `runs/sample_tms-uai63jyg/`. The next
+acceptance step is the JTAG branch's official gate-level and physical review.
+
 ## I2C controller physical and gate-level review
 
 Local Codex reviewed the four supplied ZIP archives for

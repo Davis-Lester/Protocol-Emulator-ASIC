@@ -146,7 +146,9 @@ on the final data bit. Pass the entire group of replies for one scan to
 `tools.jtag.decode_scan(register, width, replies)`. Only the shift cycles
 carry register data. The example instruction and widths belong to the test
 target. Use the attached target's instruction encodings and scan lengths.
-After the last reply, send STOP to release the three driven pins.
+After the last reply, send STOP to release the three driven pins. For a board
+that needs TCK to stay low through STOP or deselection, provide a pull-down
+sized for the target's input circuit.
 
 At a 20 MHz engine clock TCK stays high for 500 ns and low for at least
 600 ns between queued cycles. Host SPI transfers and FIFO servicing extend
