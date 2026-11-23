@@ -39,6 +39,14 @@ stretching during data and after ACK, a stretch timeout, restart after CLEAR,
 and a six-byte read with a full RX FIFO. Results are read over the host SPI
 port. A two-stage chip input synchronizer follows the modeled P7 pad readback.
 
+The JTAG fixture starts a 16-state TAP in Pause-DR and drives TDO with a
+315 ns launch delay. The shared pin test loads the JTAG image over SPI and
+runs reset, IR capture/update, two 13-bit data scans and BYPASS scans of
+eight bits and one bit. The fixture checks the selected instructions, updated
+register values, TCK timing, FIFO stalls and STOP. The Python comparison
+decodes actual SPI replies and checks scan-out against the fixture's capture
+and previously written values.
+
 ## Setting up
 
 The Linux workflow uses Icarus, make and `test/requirements.txt`.

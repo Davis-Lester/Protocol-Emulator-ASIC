@@ -9,6 +9,19 @@ from model.engine import Engine
 from tools.assembler import assemble, hex_text
 from tools.i2c import program as i2c_program, transaction
 
+from tools.jtag import decode_scan, reset_to_idle, scan
+
+# Independent target captures 0101 in IR, has a 13-bit data register at IR=2,
+# and shifts BYPASS through one stage. Each tuple includes expected scan-out.
+JTAG_SCANS = (
+    ("ir", 4, 0x2, 0x5),
+    ("dr", 13, 0x1791, 0x1357),
+    ("dr", 13, 0x0128, 0x1791),
+    ("ir", 4, 0xf, 0x5),
+    ("dr", 8, 0x96, 0x2c),
+    ("dr", 1, 1, 0),
+)
+
 
 def prepare(directory):
     words = assemble((ROOT / "programs/pulse.asm").read_text())
@@ -42,6 +55,10 @@ def prepare(directory):
         for payload, count in ((b"\x5a", 0), (b"\x5a", 2), (b"", 1), (b"", 6)):
             data = transaction(0x53, payload, count)
             stream.write(f"{len(data):x} " + data.hex(" ") + "\n")
+    jtag_image = assemble((ROOT / "programs/jtag.asm").read_text())
+    (directory / "jtag_program.hex").write_text(f"{len(jtag_image):x}\n" + hex_text(jtag_image))
+    cycles = reset_to_idle() + b"".join(scan(r, w, v) for r, w, v, _ in JTAG_SCANS)
+    (directory / "jtag_cycles.hex").write_text(f"{len(cycles):x}\n" + cycles.hex(" "))
     model = Engine()
     model.load_program(words)
     model.start()
@@ -61,6 +78,16 @@ def read_samples(path):
 
 
 def compare(directory, expected):
+    replies = bytes.fromhex((directory / "jtag_replies.hex").read_text())
+    offset = 6  # Five reset clocks and one idle clock.
+    for register, width, value, wanted in JTAG_SCANS:
+        size = len(scan(register, width, value))
+        received = decode_scan(register, width, replies[offset:offset + size])
+        if received != wanted:
+            raise AssertionError(f"JTAG {register} {width} bits: expected {wanted:#x}, got {received:#x}")
+        offset += size
+    if len(replies) != offset:
+        raise AssertionError("JTAG reply count mismatch")
     check_uart(read_samples(directory / "uart-rtl.csv"))
     check_fifo_uart(read_samples(directory / "uart-fifo-rtl.csv"))
     actual = read_samples(directory / "pulse-rtl.csv")

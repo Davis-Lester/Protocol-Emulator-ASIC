@@ -25,8 +25,11 @@ module tb ();
   wire [7:0] uio_out;
   wire [7:0] uio_oe;
   reg spi_checking = 0, target_miso = 0;
+  reg jtag_checking = 0, tap_tdo = 0;
   wire target_miso_delayed;
   assign #315 target_miso_delayed = target_miso;
+  reg tap_tdo_delayed = 0;
+  always @(tap_tdo) tap_tdo_delayed <= #315 tap_tdo;
   reg i2c_checking = 0, target_sda_low = 0, target_scl_low = 0;
   wire bus_sda, bus_scl;
   wire sda_released = !(uio_oe[3] || target_sda_low);
@@ -42,8 +45,10 @@ module tb ();
   assign bus_scl = scl_rise[1];
   reg p7_feedback = 0;
   always @(negedge clk) p7_feedback <= uio_oe[7] && uio_out[7];
+  wire serial_input = jtag_checking ? tap_tdo_delayed
+                    : spi_checking ? target_miso_delayed : uio_in[2];
   wire [7:0] protocol_inputs = i2c_checking ? {p7_feedback, uio_in[6:4], bus_sda, bus_scl, uio_in[1:0]}
-                           : {uio_in[7:3], spi_checking ? target_miso_delayed : uio_in[2], uio_in[1:0]};
+                           : {uio_in[7:3], serial_input, uio_in[1:0]};
 
   tt_um_davis_lester_protocol_emulator user_project (
       .ui_in  (ui_in),    // Dedicated inputs

@@ -3,7 +3,7 @@
 This Tiny Tapeout project targets IHP CMOS5L and 8x4 tiles. The Python assembler
 and cycle model support all 16 instructions. The RTL loads 64 x 24-bit program
 memory over SPI. The example programs generate timed pulses, transmit or receive UART,
-drive a full-duplex SPI peripheral, and control a 7-bit I2C target. See [the architecture](docs/ARCHITECTURE.md).
+drive an SPI peripheral, control a 7-bit I2C target, and scan a four-wire JTAG TAP. See [the architecture](docs/ARCHITECTURE.md).
 
 ## Run the pin tests
 
@@ -118,6 +118,40 @@ the address, payload, and length on each transaction using
 transaction ends in a read. Host SPI bandwidth, FIFO waits and clock stretching
 can reduce transaction throughput. Arbitration, target mode and 10-bit
 addressing are outside this program's scope.
+
+## Scan a JTAG target
+
+Connect P0 to TMS, P1 to TDI, P2 to the target's TDO and P3 to TCK.
+The host loads the 14-word controller image through the existing SPI port.
+The examples below generate the image and host FIFO bytes.
+
+```sh
+python -m tools.assembler programs/jtag.asm -o runs/jtag.hex
+python -m tools.jtag reset
+python -m tools.jtag ir 4 0x2
+python -m tools.jtag dr 13 0x1791
+```
+
+With the engine stopped, send CLEAR, CONFIG_OD with mask zero, then BEGIN_LOAD,
+WRITE_WORD for each word, COMMIT_LOAD and START. For each byte printed by the
+three JTAG commands, send WRITE_TX. Bit 0 drives TMS and bit 1 drives TDI.
+Each byte produces exactly one rising TCK edge and one READ_RX reply containing
+TDO in bit 0. Service TX_READY and RX_VALID together when streaming. The
+four-byte FIFOs can stall the engine with TCK low. Drain every reply, including
+the six reset-sequence replies, to keep scan data aligned.
+
+The reset sequence puts an unknown TAP into Run-Test/Idle. Each IR or DR scan
+starts and ends in Idle and shifts least-significant bit first, with TMS high
+on the final data bit. Pass the entire group of replies for one scan to
+`tools.jtag.decode_scan(register, width, replies)`. Only the shift cycles
+carry register data. The example instruction and widths belong to the test
+target. Use the attached target's instruction encodings and scan lengths.
+After the last reply, send STOP to release the three driven pins.
+
+At a 20 MHz engine clock TCK stays high for 500 ns and low for at least
+600 ns between queued cycles. Host SPI transfers and FIFO servicing extend
+the low period. This implementation prioritizes arbitrary scan lengths and
+explicit TAP control. TRST is optional and the program uses TMS for reset.
 
 ## Run the software baseline
 

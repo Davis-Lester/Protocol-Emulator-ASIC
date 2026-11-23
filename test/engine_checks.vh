@@ -168,6 +168,7 @@ endtask
 
 `include "spi_controller_checks.vh"
 `include "i2c_controller_checks.vh"
+`include "jtag_controller_checks.vh"
 
 integer i;
 reg discard_bit;
@@ -338,6 +339,7 @@ initial begin
     $display("UART RX PIN CHECKS PASSED");
     run_spi_controller;
     run_i2c_controller;
+    run_jtag_controller;
     $display("ENGINE PIN CHECKS PASSED");
     tests_done = 1;
 `ifdef QUESTA_STANDALONE
