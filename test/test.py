@@ -11,5 +11,5 @@ async def test_engine_pins(dut):
     build = Path("sim_build")
     expected = prepare(build)
     dut.start_tests.value = 1
-    await with_timeout(RisingEdge(dut.tests_done), 30, "ms")
+    await with_timeout(RisingEdge(dut.tests_done), 65, "ms")
     compare(build, expected)

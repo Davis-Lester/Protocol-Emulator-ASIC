@@ -1,6 +1,54 @@
 # Current handoff
 
-Updated 2026-11-22.
+Updated 2026-11-23.
+
+## I2C controller physical and gate-level review
+
+Local Codex reviewed the four supplied ZIP archives for
+[Actions run 45094314290](https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/45094314290).
+Submission provenance identifies `94f9c75e1e39c065f895c426707adb3c0dd7202b`.
+Archived RTL, SDC, configuration, documentation and info.yaml match that commit
+after newline normalization. All four archives pass integrity checks.
+LibreLane 3.1.0.dev4 used ihp-sg13cmos5l revision
+`89d42ee6d2fd9b50b86a1aada6fee6673c3e6008`.
+
+| Corner | Setup slack | Hold slack | Slew / fanout / capacitance violations |
+| --- | ---: | ---: | --- |
+| Fast | +29.000325 ns | +0.107663 ns | 0 / 0 / 0 |
+| Typical | +28.605048 ns | +0.284878 ns | 0 / 0 / 0 |
+| Slow | +27.936758 ns | +0.603969 ns | 0 / 0 / 0 |
+
+Extracted final STA and submission metrics agree at a 50 ns clock period,
+with zero setup and hold total negative slack. Final routing DRC, Magic DRC,
+antenna, LVS and lint error/warning metrics are zero. Netgen reports a unique
+circuit match. All ten prechecks pass and all three KLayout DRC XML files
+contain zero items. The routed netlist, OASIS and metrics match the reviewed
+SPI artifacts byte for byte. Standard-cell area is 261800 square micrometers
+and core utilization is 21.6691%.
+
+The gate-level test_engine_pins passes at 47,107,000 ns. At this commit the
+shared pin driver exercises 18 I2C scenarios across both speeds, including
+write and repeated-START read, direct read, target NACKs, finite stretch,
+SDA held low after ACK, stretch timeout, recovery, TX-empty and RX-full waits.
+The local Verilator run in `runs/verilator-engine-hoedpw3u/` also passes,
+and all recorded source input hashes match the reviewed checkout. Its measured
+data-bit periods are 10,050 ns and 2,550 ns with the digital pull-up model.
+The write image occupies 46 words and the read image occupies all 64 words.
+The prior local software check passed 45 tests.
+
+The I2C programs reserve P7 for output readback in addition to P2/SCL and
+P3/SDA. Leave P7 unconnected on the board. The testbench models pad readback
+and pull-up delay. Analog bus edges and physical pad behavior require board
+validation. The gate-level job uses functional cell models, while per-corner
+timing acceptance follows extracted STA. Gate-level and precheck XML contain
+no embedded source commit, so their association follows the supplied bundle.
+Top-level job transcripts and exit codes are absent from these ZIPs. Physical
+step COMMANDS, final reports and the gate-level waveform are present.
+
+Archive hashes, comparisons and parsed results are saved in the outer checkout
+at `runs/i2c-controller-gds/reviewed-results.json`. Reproduce the review from
+that checkout with `python runs/i2c-controller-gds/review.py`.
+The I2C milestone is ready for integration review.
 
 ## SPI controller physical review
 

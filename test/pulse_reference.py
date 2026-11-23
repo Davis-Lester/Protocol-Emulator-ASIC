@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from model.engine import Engine
 from tools.assembler import assemble, hex_text
+from tools.i2c import program as i2c_program, transaction
 
 
 def prepare(directory):
@@ -32,6 +33,15 @@ def prepare(directory):
             image = assemble((ROOT / "programs" / f"spi_mode{mode}.asm").read_text())
             stream.write(f"{len(image):x}\n")
             stream.write(hex_text(image))
+    with (directory / "i2c_programs.hex").open("w") as stream:
+        for rate in (100, 400):
+            for reading in (False, True):
+                image = i2c_program(rate, reading)
+                stream.write(f"{len(image):x}\n{hex_text(image)}")
+    with (directory / "i2c_transactions.hex").open("w") as stream:
+        for payload, count in ((b"\x5a", 0), (b"\x5a", 2), (b"", 1), (b"", 6)):
+            data = transaction(0x53, payload, count)
+            stream.write(f"{len(data):x} " + data.hex(" ") + "\n")
     model = Engine()
     model.load_program(words)
     model.start()

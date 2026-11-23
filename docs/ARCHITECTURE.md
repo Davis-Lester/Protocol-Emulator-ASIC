@@ -46,6 +46,11 @@ input synchronizer stage. GET_TX and PUT_RX can wait indefinitely with CS high.
 The [program and host instructions](../README.md#talk-to-an-spi-peripheral)
 list the sampling edge and pin assignments for each mode.
 
+The I2C controller uses P2/SCL and P3/SDA in open-drain mode and reserves
+P7 as a push-pull output with pad readback. The host supplies the address,
+data and transaction control bytes. Timed waits observe the resolved clock
+on every release. See the [I2C host example](../README.md#talk-to-an-i2c-target).
+
 At 20 MHz a 1 MHz SPI bit has 20 system cycles. A 100 kHz I2C bit has at least
 200 cycles; a 400 kHz bit has at least 50. The assembler must budget instruction
 cycles, synchronized-input latency and protocol-specific high/low/setup/hold

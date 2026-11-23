@@ -167,6 +167,7 @@ task read_rx;
 endtask
 
 `include "spi_controller_checks.vh"
+`include "i2c_controller_checks.vh"
 
 integer i;
 reg discard_bit;
@@ -336,6 +337,7 @@ initial begin
     read_rx(8'ha9);
     $display("UART RX PIN CHECKS PASSED");
     run_spi_controller;
+    run_i2c_controller;
     $display("ENGINE PIN CHECKS PASSED");
     tests_done = 1;
 `ifdef QUESTA_STANDALONE
