@@ -1,5 +1,24 @@
 # Current handoff
 
+## PS/2 host-to-keyboard Echo
+
+Local Codex extended the PS/2 branch with a 60-word Echo image and a pin-level
+keyboard peer. The SPI host configures open drain and loads the image. The
+keyboard model samples the host command and parity on keyboard-generated
+rising edges, supplies the electrical ACK and returns the sampled byte.
+The host reads the Echo response and a following scan code through SPI.
+
+The regression covers a released ACK bit, a mid-command clock stall, no
+first clock, and a missing reply after ACK. On the final retry the keyboard
+delays its first clock by 14 ms. Faulted transactions release the pins, and
+CLEAR/START retries the loaded program. An idle receiver after ACK uses a
+host-side reply deadline. The normal sequence and fault codes are in the
+[Echo instructions](../README.md#send-a-ps2-keyboard-echo).
+
+The shared harness feeds the official RTL and gate-level jobs. Local
+behavioral simulation covers the frozen engine. This milestone still needs
+gate-level replay and physical keyboard testing.
+
 ## PS/2 receive milestone
 
 Local Codex added a 28-word receive image and an independent keyboard pin
@@ -15,8 +34,7 @@ The local result.json under runs/verilator-engine-rdc16flr records the
 source hashes, simulator/compiler versions, commands and exit statuses.
 All 45 baseline Python tests passed. The shared bench also feeds the
 official RTL and gate-level jobs. Gate-level replay and physical keyboard
-interoperability are pending. The next PS/2 milestone is host command
-transmission with electrical acknowledgment and a keyboard response.
+interoperability are pending. The Echo milestone above extends this receive-only checkpoint.
 
 ## Frozen engine for the PS/2 and SWD demonstrations
 

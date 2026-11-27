@@ -9,6 +9,7 @@ from model.engine import Engine
 from tools.assembler import assemble, hex_text
 from tools.i2c import program as i2c_program, transaction
 
+from tools.ps2 import echo_program
 from tools.jtag import decode_scan, reset_to_idle, scan
 
 # Independent target captures 0101 in IR, has a 13-bit data register at IR=2,
@@ -57,6 +58,8 @@ def prepare(directory):
             stream.write(f"{len(data):x} " + data.hex(" ") + "\n")
     ps2 = assemble((ROOT / "programs/ps2_rx.asm").read_text())
     (directory / "ps2_rx.hex").write_text(f"{len(ps2):x}\n" + hex_text(ps2))
+    echo = echo_program()
+    (directory / "ps2_echo.hex").write_text(f"{len(echo):x}\n" + hex_text(echo))
     jtag_image = assemble((ROOT / "programs/jtag.asm").read_text())
     (directory / "jtag_program.hex").write_text(f"{len(jtag_image):x}\n" + hex_text(jtag_image))
     cycles = reset_to_idle() + b"".join(scan(r, w, v) for r, w, v, _ in JTAG_SCANS)

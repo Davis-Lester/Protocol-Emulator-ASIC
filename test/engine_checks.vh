@@ -342,6 +342,7 @@ initial begin
     run_i2c_controller;
     run_jtag_controller;
     run_ps2_keyboard;
+    run_ps2_echo;
     $display("ENGINE PIN CHECKS PASSED");
     tests_done = 1;
 `ifdef QUESTA_STANDALONE

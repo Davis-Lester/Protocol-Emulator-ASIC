@@ -31,7 +31,8 @@ def main():
     inputs.extend(ROOT / path for path in ("programs/i2c.asm.in", "programs/i2c_receive.asm.in", "tools/i2c.py",
                                             "test/i2c_controller_checks.vh", "programs/jtag.asm",
                                             "tools/jtag.py", "test/jtag_controller_checks.vh",
-                                            "programs/ps2_rx.asm", "test/ps2_keyboard_checks.vh"))
+                                            "programs/ps2_rx.asm", "programs/ps2_echo.asm.in", "tools/ps2.py",
+                                            "test/ps2_keyboard_checks.vh"))
     record = {"commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "git_status": subprocess.check_output(["git", "status", "--short"], cwd=ROOT, text=True),
               "input_sha256": {p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
@@ -63,12 +64,12 @@ def main():
         run("vlog", ["+define+QUESTA_STANDALONE", "+incdir+" + str(ROOT / "test"),
                      *rtl, ROOT / "test/tb.v"], "compile.log")
         output = run("vsim", ["-c", "-onfinish", "stop", "work.tb", "-do",
-                     "onerror {quit -code 1}; run 80 ms; quit -code 0"], "simulate.log")
+                     "onerror {quit -code 1}; run 150 ms; quit -code 0"], "simulate.log")
         if "ENGINE PIN CHECKS PASSED" not in output or "ENGINE FAIL:" in output:
             raise RuntimeError(f"Pin checks did not pass. See {directory / 'simulate.log'}")
         compare(build, expected)
         record["result"] = "PASS"
-        print("PASS: host SPI, pulse, UART TX/RX, SPI modes 0-3, I2C at both rates, JTAG scans and PS/2 keyboard receive")
+        print("PASS: host SPI, pulse, UART TX/RX, SPI modes 0-3, I2C at both rates, JTAG scans and PS/2 receive and Echo")
     except (OSError, RuntimeError, ValueError, AssertionError) as exc:
         record["error"] = str(exc)
         print(f"FAIL: {exc}", file=sys.stderr)

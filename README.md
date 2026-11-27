@@ -59,6 +59,35 @@ keyboard-to-host traffic. The simulated keyboard supplies the eleven-bit
 frame independently of the receiver program. See the PS/2 section of the
 [Digilent reference manual](https://digilent.com/reference/_media/reference/programmable-logic/nexys-2/nexys2_rm.pdf).
 
+## Send a PS/2 keyboard Echo
+
+With the engine clock at 20 MHz, run `python -m tools.ps2` to print the 60
+24-bit words in load order. The image sends one Echo command and then runs
+the scan-code receiver above. P2 is clock and P3 is data. Both lines need
+pull-ups to a compatible interface voltage.
+
+1. With the keyboard idle and the engine stopped, send CLEAR, BEGIN_LOAD with
+   length 60, each WRITE_WORD, then COMMIT_LOAD. Set CONFIG_OD to `0x0C` (SPI
+   request bytes `05 01 0C`) before START.
+2. START inhibits clock for at least 110 us, asserts data low and releases
+   clock. The keyboard clocks in `EE` LSB first, odd parity and stop. It then
+   pulls data low in the electrical ACK clock slot.
+3. Poll RX_VALID and FAULT. Read the first valid reply with READ_RX
+   (`08 00 00 00 00`) and compare the returned byte with `EE`. Report any
+   other byte as an unexpected response. Subsequent valid scan codes also
+   enter the FIFO. Use STOP when finished.
+4. Allow for the keyboard to start clocking (about 16 ms maximum in this
+   image), then for the command and reply. A high electrical ACK bit faults
+   with `83`. A missing first clock or stalled in-frame transition faults
+   with `03`. After ACK the receiver can wait indefinitely for a new frame.
+   Use a host deadline, for example 40 ms from START, and issue STOP if the
+   reply is still missing. With the bus back at idle, CLEAR and START retry
+   the same loaded command.
+
+The shared pin regression exercises Echo on resolved open-drain lines.
+The command framing and clock ownership follow the Freescale keyboard
+reference design. [Reference manual, section 1.5.4](https://www.nxp.com/docs/en/reference-manual/DRM014.pdf)
+
 ## Receive UART bytes
 
 Load [uart_rx.asm](programs/uart_rx.asm), hold P2 high at idle, then issue START.

@@ -1,0 +1,45 @@
+; Echo command prefix for ps2_rx.asm. P2 clock, P3 data, both open drain.
+; Start with an idle keyboard bus and CONFIG_OD 0x0c. Timing assumes 20 MHz.
+    WAIT P2,1,4000
+    WAIT P3,1,4000
+    OUT 12,8              ; Preload clock low and data released before enabling.
+    OE 12,12
+    DELAY 2200            ; Inhibit clock for 110 us before asserting start.
+    OUT 8,0
+    DELAY 100
+    OUT 4,4               ; Request to send. Keyboard supplies the remaining clocks.
+    WAIT P2,1,4000        ; Observe release through the input synchronizer.
+
+; Two polls per iteration, at most 25.1 us apart (shortest clock low is 30 us).
+; Together with the final WAIT this allows just over 16 ms for the first clock.
+    LOOP 255
+poll_keyboard:
+    BRPIN P2,0,first_bit
+    DELAY 500
+    BRPIN P2,0,first_bit
+    DELAY 500
+    DJNZ poll_keyboard
+    WAIT P2,0,65535
+first_bit:
+    LOAD_TX 0xee
+    LOOP 8
+send_bit:
+    WAIT P2,0,4000
+    TXBIT P3,LSB
+    WAIT P2,1,4000
+    DJNZ send_bit
+
+; Bit 7 already released data. Both odd parity for EE and the stop bit are 1.
+    LOOP 2
+parity_stop:
+    WAIT P2,0,4000
+    WAIT P2,1,4000
+    DJNZ parity_stop
+    WAIT P2,0,4000        ; The keyboard owns the electrical ACK slot.
+    DELAY 200             ; Sample 10 us into the ACK low clock phase.
+    BRPIN P3,0,acknowledged
+    TRAP 0x83
+acknowledged:
+    WAIT P2,1,4000
+    WAIT P3,1,4000
+; Fall through to the normal keyboard receiver with both pins released.
