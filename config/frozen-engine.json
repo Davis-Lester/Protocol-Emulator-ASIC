@@ -1,0 +1,39 @@
+{
+  "hardware_commit": "a44dfb0d8bd59d4eff65dcbb6729176af8b9ada4",
+  "software_start_commit": "33e73d78aae83574266b2d4a05a590ccf1ab5447",
+  "sha256_basis": "Canonical Git blob bytes for source files; raw ZIP member bytes for routed artifacts.",
+  "source_sha256": {
+    ".github/workflows/gds.yaml": "0e4badc5277e06f796b52ea24e830931381598d3177d46bdfdf2611d1a66d63c",
+    "docs/ARCHITECTURE.md": "5b6a4e14e55f189315b45a1077bec510cac8129c924e46a22d9d4809c4366bcd",
+    "info.yaml": "5045a11ff8e81bf5541804e3187610a65601f78e121b4f7d0e26f13ee42ab85a",
+    "model/engine.py": "f361116ebf7cb863cc5e3c1e598abc44755cf32c41fa0ba93f8ed85fd5e0271d",
+    "src/config.json": "10c5c55fecb9e9d3dec91c95f0195ac2eb0586548fd1d22469ba1f4ffbcfd68f",
+    "src/pnr.sdc": "120602a7aa46118a0f8560004cec2ce2284c5c1f4bb80592301aedf331e7b396",
+    "src/project.v": "743b565c95299d3f7a7a36fbecf62573b495f52b96118d4db2e0656a24c35ef8",
+    "src/protocol_core.v": "ee95918579f09e5f47a0691327c0a20b16a10dc1af654ebd4dc1f5e892ff7c68",
+    "src/protocol_emulator.v": "f58753cab0a3e7a84e4e8888b6d03c15b039f55ec3f5b004fd7b24643421e2ea",
+    "src/protocol_spi.v": "fc710af2917da75b84c1f9a72c4f83e2a06b155c9cb988d68e47d9a4519d9207",
+    "src/signoff.sdc": "d1bd7162ba40be419f0d184eb4d38b43322b184559e5a7a5cbe93e5de637496d",
+    "tools/assembler.py": "fa7f30181859a247d7c59439d04ff0d84c15e522700a1e914063a902421cc93d"
+  },
+  "reviewed_runs": [
+    {
+      "source_commit": "a44dfb0d8bd59d4eff65dcbb6729176af8b9ada4",
+      "workflow": "https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/45205787143",
+      "submission_sha256": "40255890293ddb55a845d7b1195e87ed75a285a36fd7e7ded9dab98429390ef4",
+      "artifacts_sha256": {
+        "tt_submission/tt_um_davis_lester_protocol_emulator.oas": "6250c440c2410ab2c4502300c628adffb3696df715d8b00bbd18d24b8e9517ca",
+        "tt_submission/tt_um_davis_lester_protocol_emulator.v": "1124cd7d2726341ca55cf4e7ae9e897a0bb3d6eb4b42847a3ceb2aedc4db21db"
+      }
+    },
+    {
+      "source_commit": "e43fd6c627526a69138462fc3dcaabd901254c45",
+      "workflow": "https://github.com/Davis-Lester/Protocol-Emulator-ASIC/actions/runs/45207561284",
+      "submission_sha256": "824b16d51d893443cc408940e6fb43aed4ff296d5c5d5f781b39c512692930d0",
+      "artifacts_sha256": {
+        "tt_submission/tt_um_davis_lester_protocol_emulator.oas": "6250c440c2410ab2c4502300c628adffb3696df715d8b00bbd18d24b8e9517ca",
+        "tt_submission/tt_um_davis_lester_protocol_emulator.v": "1124cd7d2726341ca55cf4e7ae9e897a0bb3d6eb4b42847a3ceb2aedc4db21db"
+      }
+    }
+  ]
+}

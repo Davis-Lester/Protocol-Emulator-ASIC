@@ -1,5 +1,32 @@
 # Current handoff
 
+## Frozen engine for the PS/2 and SWD demonstrations
+
+The hardware baseline is merged main at `a44dfb0`. Both protocol workspaces
+start from the reviewed JTAG software at `33e73d7` so existing JTAG pin tests
+are available. Local Codex owns programs, host tools and verification in the
+`local/ps2-host` and `local/swd-host` worktrees.
+
+[The freeze manifest](../config/frozen-engine.json) records the full commits,
+source hashes, and reviewed submission identities. The ISA specification,
+assembler and cycle model are recorded as reference versions. Source hashes
+use Git blob bytes to avoid checkout-specific CRLF differences. Archived
+routed Verilog and OASIS match byte for byte between the two listed runs.
+
+From either worktree, compare hardware inputs with the frozen revision before
+reporting a new program running on this hardware:
+
+```sh
+git diff --exit-code a44dfb0 -- src info.yaml .github/workflows/gds.yaml
+```
+
+First PS/2 milestone: load a keyboard receive program through SPI and verify
+its pins and host readback against an independent keyboard model. First SWD
+milestone: verify line turnaround and a debug-port ID read against an
+independent target model. This checkpoint establishes the shared baseline
+for both tests.
+
+
 Updated 2026-11-23.
 
 ## JTAG gate-level and physical review
