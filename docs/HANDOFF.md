@@ -1,5 +1,23 @@
 # Current handoff
 
+## PS/2 receive milestone
+
+Local Codex added a 28-word receive image and an independent keyboard pin
+driver on local/ps2-host. The Verilator 5.026 behavioral RTL regression
+loaded the assembled image over the host SPI pins. It recovered 1C F0 1C
+in FIFO order, retained the earlier bytes after a parity fault, rejected
+a bad stop bit, and detected a stalled keyboard clock. CLEAR and START
+rearmed reception and the host read A3. The preceding SPI, UART, I2C and
+JTAG regression also passed. Reversing only RXBIT order in a temporary
+image caused the SPI scoreboard to report 38 instead of 1C.
+
+The local result.json under runs/verilator-engine-rdc16flr records the
+source hashes, simulator/compiler versions, commands and exit statuses.
+All 45 baseline Python tests passed. The shared bench also feeds the
+official RTL and gate-level jobs. Gate-level replay and physical keyboard
+interoperability are pending. The next PS/2 milestone is host command
+transmission with electrical acknowledgment and a keyboard response.
+
 ## Frozen engine for the PS/2 and SWD demonstrations
 
 The hardware baseline is merged main at `a44dfb0`. Both protocol workspaces

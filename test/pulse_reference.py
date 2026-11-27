@@ -55,6 +55,8 @@ def prepare(directory):
         for payload, count in ((b"\x5a", 0), (b"\x5a", 2), (b"", 1), (b"", 6)):
             data = transaction(0x53, payload, count)
             stream.write(f"{len(data):x} " + data.hex(" ") + "\n")
+    ps2 = assemble((ROOT / "programs/ps2_rx.asm").read_text())
+    (directory / "ps2_rx.hex").write_text(f"{len(ps2):x}\n" + hex_text(ps2))
     jtag_image = assemble((ROOT / "programs/jtag.asm").read_text())
     (directory / "jtag_program.hex").write_text(f"{len(jtag_image):x}\n" + hex_text(jtag_image))
     cycles = reset_to_idle() + b"".join(scan(r, w, v) for r, w, v, _ in JTAG_SCANS)

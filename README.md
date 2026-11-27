@@ -33,6 +33,32 @@ waiting, sends each byte as 8N1 and loops until STOP. To finish the last
 frame, wait for its stop bit before sending STOP. The TX count covers
 queued bytes and excludes the byte already in the shifter.
 
+## Receive PS/2 keyboard scan codes
+
+Load [the 28-word PS/2 receiver](programs/ps2_rx.asm) over the mode-0 host SPI
+port. P2 is keyboard clock and P3 is keyboard data. The program leaves both
+pins released throughout. For a physical keyboard, use pull-ups and an interface
+compatible with both the keyboard and the chip I/O voltage.
+
+1. While the bus is idle high and the engine stopped, issue CLEAR, BEGIN_LOAD
+   with length 28, all WRITE_WORD commands, COMMIT_LOAD, then START.
+2. The keyboard supplies each clock. At the falling edges the engine checks a
+   low start bit, shifts eight data bits LSB first, checks odd parity, and
+   checks a high stop bit. Only a complete valid byte enters the RX FIFO.
+3. While RX_VALID is high, send `08 00 00 00 00` under one CS assertion.
+   The final three reply bytes are status, payload length and scan code. A
+   press/release sequence can return `1C F0 1C` across three reads.
+4. Drain the four-byte FIFO in time for each new frame. Fault codes are 0x81
+   for bad framing, 0x82 for bad parity, 0x03 for a missing in-frame clock
+   level (4,000 clocks, 200 us at 20 MHz), and 0x05 for RX overflow. Drain
+   previously accepted bytes before CLEAR. After the keyboard returns to idle,
+   issue CLEAR and START to receive again.
+
+The program listens indefinitely between frames. This milestone covers
+keyboard-to-host traffic. The simulated keyboard supplies the eleven-bit
+frame independently of the receiver program. See the PS/2 section of the
+[Digilent reference manual](https://digilent.com/reference/_media/reference/programmable-logic/nexys-2/nexys2_rm.pdf).
+
 ## Receive UART bytes
 
 Load [uart_rx.asm](programs/uart_rx.asm), hold P2 high at idle, then issue START.
